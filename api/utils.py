@@ -3,6 +3,13 @@ import io
 from fastapi import HTTPException
 from functools import wraps
 from requests.exceptions import RequestException
+from dotenv import load_dotenv
+import os
+import re
+import json
+load_dotenv()
+GRADESCOPE_EMAIL = os.getenv("EMAIL")
+GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
 
 def csv_to_json(csv_content: str):
     """
@@ -70,3 +77,161 @@ def handle_errors(func):
             print(f"Unexpected server error: {e}")
             raise HTTPException(status_code=500, detail="An unexpected server error occurred.")
     return wrapper
+
+from functools import wraps
+
+def gradescope_session(client):
+    """
+    A decorator to log in and log out to GradeScope.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                # Log in before executing the function
+                client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
+                print("Logged in to Gradescope")
+                
+                # Execute the decorated function
+                return func(*args, **kwargs)
+            
+            except Exception as e:
+                return {"message": "Unknown error: " + str(e)}
+            
+            finally:
+                # Ensure logout occurs, even if an error happens
+                try:
+                    client.logout()
+                    print("Logged out of Gradescope")
+                except Exception as logout_error:
+                    print(f"Logout failed: {logout_error}")
+
+        return wrapper
+    return decorator
+
+def convert_course_info_to_json(course_info_response: str):
+    """
+    Parses course assignment information from a JSON-formatted string and categorizes assignments into
+    structured dictionaries based on assignment types such as lecture quizzes, labs, discussions, etc.
+
+    # TODO: Create an assignment mapping structure that maps one assignment to another assignment for each semester
+    # TODO: Example: Lab 4 for Fall 2023 can correspond to Lab 5 in Fall 2024. 
+    # TODO: Create a function to input (OldSemester, OldAssignmentID, NewSemester) -> Output new assignmentID. 
+    # TODO: The above suggested function is for processing incomplete students.
+    # TODO: In Redis, do we want an ID {UNIVERSAL_ID_FOR_ASSIGNMENT: {Fall2023: FALL2023_ID_FOR_ASSIGNMENT, Fall2024: FALL2024_ID_FOR_ASSIGNMENT}}?
+
+    # TODO: Statically configure this assignmentID configuration for Fall 2024 and cache this in Redis
+    # TODO: Or statically cache this in a config file to avoid constant API calls to GradeScope
+    # TODO: This JSON will be needed to periodically update grades (CRON job) for 1 particular assignment by inputting the assignmentID.
+
+    Each assignment is identified by its "id" and "title" and is categorized accordingly:
+    - "lecture_quizzes": Contains lecture quizzes organized by numeric keys.
+    - "labs": Contains labs, which may have "conceptual" and "code" subcategories.
+    - "discussions": Contains discussions organized by numeric keys.
+    - Other categories can be added to the structure as needed.
+
+    Parameters:
+    - course_info_response (str): A JSON-formatted string containing assignment details, including 
+      unique "id" and "title" fields for each assignment.
+
+    Returns:
+    - dict: A dictionary with categorized assignments. Each category is structured as a dictionary
+      where keys are assignment identifiers (or subcategories), and values are dictionaries 
+      containing "title" and "assignment_id".
+
+    Example Output:
+    {
+        "lecture_quizzes": {
+            "1": {"title": "Lecture Quiz 1: Intro", "assignment_id": "5211613"},
+            ...
+        },
+        "labs": {
+            "2": {
+                "conceptual": {"title": "Lab 2: Basics (Conceptual)", "assignment_id": "5211616"},
+                "code": {"title": "Lab 2: Basics (Code)", "assignment_id": "5211617"}
+            },
+            ...
+        },
+        "discussions": {
+            "1": {"title": "Discussion 1: Overview", "assignment_id": "5211618"},
+            ...
+        }
+    }
+    """
+    pattern = '{"id":[0-9]+,"title":"[^}"]+?"}'
+    info_for_all_assignments = re.findall(pattern, course_info_response)
+    assignment_to_categories = {
+        "lecture_quizzes": {},
+        "labs": {},
+        "discussions": {},
+        "midterms": {},
+        "projects": {},
+        "other": {}
+    }
+
+    for assignment in info_for_all_assignments:
+        assignment_as_json = json.loads(assignment)
+        assignment_id = str(assignment_as_json["id"])
+        title = assignment_as_json["title"]
+
+        # Categorize based on assignment title
+        if "Lecture Quiz" in title:
+            quiz_number = re.search(r'\d+', title)
+            if quiz_number:
+                key = quiz_number.group()
+                assignment_to_categories["lecture_quizzes"][key] = {
+                    "title": title,
+                    "assignment_id": assignment_id
+                }
+        elif "Discussion" in title:
+            discussion_number = re.search(r'\d+', title)
+            if discussion_number:
+                key = discussion_number.group()
+                assignment_to_categories["discussions"][key] = {
+                    "title": title,
+                    "assignment_id": assignment_id
+                }
+        elif "Midterm" in title or "Practice Midterm" in title:
+            midterm_key = len(assignment_to_categories["midterms"]) + 1
+            assignment_to_categories["midterms"][str(midterm_key)] = {
+                "title": title,
+                "assignment_id": assignment_id
+            }
+        elif "Project" in title:
+            project_number = re.search(r'\d+', title)
+            if project_number:
+                key = project_number.group()
+                assignment_to_categories["projects"][key] = {
+                    "title": title,
+                    "assignment_id": assignment_id
+                }
+        elif "Lab" in title:
+            lab_number = re.search(r'\d+', title)
+            if lab_number:
+                key = lab_number.group()
+                if key not in assignment_to_categories["labs"]:
+                    assignment_to_categories["labs"][key] = {}
+                if "Conceptual" in title:
+                    assignment_to_categories["labs"][key]["conceptual"] = {
+                        "title": title,
+                        "assignment_id": assignment_id
+                    }
+                elif "Code" in title:
+                    assignment_to_categories["labs"][key]["code"] = {
+                        "title": title,
+                        "assignment_id": assignment_id
+                    }
+                else:
+                    assignment_to_categories["labs"][key] = {
+                        "title": title,
+                        "assignment_id": assignment_id
+                    }
+        else:
+            assignment_to_categories["other"][assignment_id] = title
+
+    # Sort categories with numbers by extracting numbers
+    for category in ["lecture_quizzes", "labs", "projects", "discussions", "midterms"]:
+        sorted_items = dict(sorted(assignment_to_categories[category].items(), key=lambda item: int(item[0])))
+        assignment_to_categories[category] = sorted_items
+
+    return assignment_to_categories
