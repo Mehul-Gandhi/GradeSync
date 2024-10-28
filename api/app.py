@@ -118,8 +118,10 @@ def get_assignment_info(class_id: str = None):
             content={"error": "Gradescope Error", "message": f"Gradescope returned a {res.status_code} status code"},
             status_code=res.status_code
         )
+        # We return the JSON without JSONResponse so we can reuse this in other APIs easily.
+        # We let FastAPI reformat this for us.
         json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
-        return JSONResponse(content=json_format_content, status_code=200)
+        return json_format_content 
     except Exception as e:
         return JSONResponse(
             content={"error": "Data Processing Error", "message": str(e)},
