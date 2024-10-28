@@ -155,8 +155,10 @@ def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMEN
 
 @deprecated
 def initialize_gs_client():
+    with open('gs_credentials.json', 'r') as credentials_file:
+        credentials = json.loads(credentials_file.read())
     gradescope_client = client.GradescopeClient()
-    gradescope_client.prompt_login()
+    gradescope_client.log_in(credentials["email"], credentials["password"])
     return gradescope_client
 
 @deprecated
@@ -191,14 +193,6 @@ def get_assignment_id_to_names(gradescope_client):
         assignment_as_json = json.loads(assignment)
         assignment_to_names[str(assignment_as_json["id"])] = assignment_as_json["title"]
     return assignment_to_names
-
-def main():
-    if len(sys.argv) > 1:
-        creds = allow_user_to_authenticate_google_account()
-        gradescope_client = initialize_gs_client()
-        make_score_sheet_for_one_assignment(creds, gradescope_client = gradescope_client)
-    else:
-        populate_instructor_dashboard()
 
 @deprecated
 def populate_instructor_dashboard():
@@ -330,5 +324,13 @@ def populate_instructor_dashboard():
     dashboard_df.to_csv(output)
     update_sheet_with_csv(output.getvalue(), sheet_api_instance, dashboard_sheet_id, 0, 3)
     output.close()
+
+def main():
+    if len(sys.argv) > 1:
+        creds = allow_user_to_authenticate_google_account()
+        gradescope_client = initialize_gs_client()
+        make_score_sheet_for_one_assignment(creds, gradescope_client = gradescope_client)
+    else:
+        populate_instructor_dashboard()
 
 main()
