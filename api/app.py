@@ -51,7 +51,7 @@ def fetchGrades(class_id: str, assignment_id: str):
         if result.ok:
             csv_content = result.content.decode("utf-8")
             json_content = csv_to_json(csv_content)
-            return JSONResponse(content=json_content, status_code=200)
+            return json_content
         else:
             return JSONResponse(
                 content={"message": f"Failed to fetch grades. "},
