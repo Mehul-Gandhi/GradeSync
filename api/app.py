@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 # https://pypi.org/project/fullGSapi/
 from fullGSapi.api import client
 import os
@@ -52,9 +53,15 @@ def fetchGrades(class_id: str, assignment_id: str):
             json_content = csv_to_json(csv_content)
             return json_content
         else:
-            return {"message": f"Failed to fetch grades: {result.status_code}. "}
+            return JSONResponse(
+                content={"message": f"Failed to fetch grades. "},
+                status_code=int(result.status_code)
+            )
     except Exception as e:
-        return {"message": "Unknown error " + str(e)}
+        return JSONResponse(
+            content={"error": "Unknown error ", "message": str(e)},
+            status_code=500
+        )
 
 @app.get("/getAssignmentJSON")
 @handle_errors
@@ -92,15 +99,34 @@ def get_assignment_info(class_id: str = None):
         }
     }
     """
+    # if class_id is None, use CS10's COURSE_ID
+    class_id = class_id or COURSE_ID
     if not GRADESCOPE_CLIENT.logged_in:
-        print("You must be logged in to download grades!")
-        return False
-    GRADESCOPE_CLIENT.last_res = res = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
-    if not res or not res.ok:
-        print(f"Failed to get a response from gradescope! Got: {res}")
-        return False
-    json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
-    return json_format_content
+        return JSONResponse(
+            content={"error": "Unauthorized access", "message": "User is not logged into Gradescope"},
+            status_code=401
+        )
+    try: 
+        GRADESCOPE_CLIENT.last_res = res = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
+        if not res:
+            return JSONResponse(
+            content={"error": "Connection Error", "message": "Failed to connect to Gradescope"},
+            status_code=503
+        )
+        if not res.ok:
+            return JSONResponse(
+            content={"error": "Gradescope Error", "message": f"Gradescope returned a {res.status_code} status code"},
+            status_code=res.status_code
+        )
+        # We return the JSON without JSONResponse so we can reuse this in other APIs easily.
+        # We let FastAPI reformat this for us.
+        json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
+        return json_format_content 
+    except Exception as e:
+        return JSONResponse(
+            content={"error": "Data Processing Error", "message": str(e)},
+            status_code=500
+        )
 
 
 @app.get("/getGradeScopeAssignmentID/{category_type}/{assignment_number}")
@@ -131,24 +157,40 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     assignments = get_assignment_info(COURSE_ID)
     category_data = assignments.get(category_type)
     if not category_data:
-        raise HTTPException(status_code=404, detail=f"Category '{category_type}' not found.")
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "Not Found", "message": f"Category '{category_type}' not found."}
+        )
 
     assignment_data = category_data.get(str(assignment_number))
     if not assignment_data:
-        raise HTTPException(status_code=404, detail=f"'{category_type.capitalize()} {assignment_number}' not found.")
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "Not Found", "message": f"'{category_type.capitalize()} {assignment_number}' not found."}
+        )
 
     if category_type == "labs":
         if lab_type == 1:
             if "conceptual" in assignment_data:
                 return {"assignment_id": assignment_data["conceptual"]["assignment_id"]}
             else:
-                raise HTTPException(status_code=404, detail=f"'Lab {assignment_number}' does not have a 'conceptual' section.")
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "Not Found", "message": f"'Lab {assignment_number}' does not have a 'conceptual' section."}
+                )
         elif lab_type == 0:
             if "code" in assignment_data:
                 return {"assignment_id": assignment_data["code"]["assignment_id"]}
             else:
-                raise HTTPException(status_code=404, detail=f"'Lab {assignment_number}' does not have a 'code' section.")
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "Not Found", "message": f"'Lab {assignment_number}' does not have a 'code' section."}
+                )
         else:
-            raise HTTPException(status_code=400, detail="For labs, 'lab_type' must be 1 (conceptual) or 0 (code).")
+            raise HTTPException(
+                status_code=400,
+                detail={"error": "Bad Request", "message": "For labs, 'lab_type' must be 1 (conceptual) or 0 (code)."}
+            )
 
+    # Return assignment ID if found for categories other than "labs"
     return {"assignment_id": assignment_data.get("assignment_id", "Assignment ID not found.")}
