@@ -336,4 +336,5 @@ def main():
     else:
         populate_instructor_dashboard()
 
-main()
+if __name__ == "__main__":
+    main()
