@@ -194,3 +194,52 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
 
     # Return assignment ID if found for categories other than "labs"
     return {"assignment_id": assignment_data.get("assignment_id", "Assignment ID not found.")}
+
+
+@app.get("/FetchAllGrades")
+@handle_errors
+def fetchAllGrades(class_id: str = None):
+    """
+    Fetch Grades for all assignments for all students
+
+    Parameters:
+    - class_id (str, optional): The ID of the class for which assignments are being retrieved. 
+      Defaults to `None`.
+
+    Returns:
+    - JSON
+
+    Example Output:
+    {
+        "5211610": [
+            {
+            "Name": "test2",
+            "SID": "",
+            "Email": "test2@test.com",
+            "Total Score": "",
+            "Max Points": "4.0",
+            "Status": "Missing",
+            "Submission ID": null,
+            "Submission Time": null,
+            "Lateness (H:M:S)": null,
+            "View Count": null,
+            "Submission Count": null,
+            "1: Lists (1.0 pts)": null,
+            "2: Map, Keep, and Combine (1.0 pts)": null,
+            "3: Using HOFs (1.0 pts)": null,
+            "4: Loops (1.0 pts)": null
+            },
+            ...,
+        ], 
+        .....
+    }
+    """
+
+    class_id = class_id or COURSE_ID
+    assignment_info = get_assignment_info()
+    all_ids = get_ids_for_all_assignments(assignment_info)
+
+    all_grades = {}
+    for one_id in all_ids:
+        all_grades[one_id] = fetchGrades(class_id, one_id)
+    return all_grades

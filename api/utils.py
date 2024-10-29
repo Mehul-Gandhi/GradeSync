@@ -235,3 +235,50 @@ def convert_course_info_to_json(course_info_response: str):
         assignment_to_categories[category] = sorted_items
 
     return assignment_to_categories
+
+def extract_assignment_ids(sub_dict):
+    """
+    extract the assignment id
+    """
+
+    assignment_ids = []
+    for key, value in sub_dict.items():
+        if isinstance(value, dict):
+            if 'assignment_id' in value:
+                assignment_ids.append(value['assignment_id'])
+            else:
+                assignment_ids.extend(extract_assignment_ids(value))  # Recursively handle nested dictionaries
+    return assignment_ids
+
+def get_ids_for_category(data_dict, category):
+    """
+    Get assginment id's for one category
+    """
+
+    if category not in data_dict:
+        return "Category not found"
+    
+    category_data = data_dict[category]
+    return extract_assignment_ids(category_data)
+
+
+def get_ids_for_all_assignments(data_dict):
+    """
+    Extract the assignment id's for all assignments (lecture, labs, projects, etc)
+
+    Input: 
+        - Output of the function get_assignment_info()
+
+    Return: 
+        - A list of assignment ids
+
+    Example output:
+        ["#######", "########", ..... , "#######"]
+    """
+    all_assignment_ids = []
+    
+    for category in data_dict.keys():
+        ids_for_category = get_ids_for_category(data_dict, category)
+        if isinstance(ids_for_category, list):  # Make sure it's a list of IDs
+            all_assignment_ids.extend(ids_for_category)
+    return all_assignment_ids
