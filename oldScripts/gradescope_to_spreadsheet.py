@@ -15,6 +15,8 @@ import io
 import time
 import warnings
 import functools
+import os
+from dotenv import load_dotenv
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -41,9 +43,12 @@ NUM_LECTURE_DROPS = 3
 # The ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 
+load_dotenv()
+GRADESCOPE_EMAIL = os.getenv("EMAIL")
+GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
+
 # This is not a constant; it is a variable that needs global scope. It should not be modified by the user
 subsheet_titles_to_ids = None
-
 
 
 def deprecated(func):
@@ -155,10 +160,8 @@ def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMEN
 
 @deprecated
 def initialize_gs_client():
-    with open('gs_credentials.json', 'r') as credentials_file:
-        credentials = json.loads(credentials_file.read())
     gradescope_client = client.GradescopeClient()
-    gradescope_client.log_in(credentials["email"], credentials["password"])
+    gradescope_client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
     return gradescope_client
 
 @deprecated
