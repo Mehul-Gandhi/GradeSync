@@ -210,7 +210,7 @@ def fetchAllGrades(class_id: str = None):
 
     Example Output:
     {
-        "5211610": [
+        "Lecture Quiz 1: Welcome to CS10 u0026 Abstraction": [
             {
             "Name": "test2",
             "SID": "",
