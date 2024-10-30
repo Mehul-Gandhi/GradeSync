@@ -1,15 +1,14 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 # https://pypi.org/project/fullGSapi/
-from fullGSapi.api import client
+# from fullGSapi.api import client
+from gradescopeClient import GradescopeClient
 import os
 import json 
 from utils import *
 
 app = FastAPI()
-# Load environment variables from the .env file
-GRADESCOPE_CLIENT = client.GradescopeClient()
-
+GRADESCOPE_CLIENT = GradescopeClient()
 # Load JSON variables
 config_path = os.path.join(os.path.dirname(__file__), "config.json")
 with open(config_path, "r") as config_file:
@@ -234,12 +233,11 @@ def fetchAllGrades(class_id: str = None):
         .....
     }
     """
-
     class_id = class_id or COURSE_ID
     assignment_info = get_assignment_info()
     all_ids = get_ids_for_all_assignments(assignment_info)
 
     all_grades = {}
-    for one_id in all_ids:
-        all_grades[one_id] = fetchGrades(class_id, one_id)
+    for title, one_id in all_ids:
+        all_grades[title] = fetchGrades(class_id, one_id)
     return all_grades
