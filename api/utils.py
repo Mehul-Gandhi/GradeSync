@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 import os
 import re
 import json
-import threading
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
