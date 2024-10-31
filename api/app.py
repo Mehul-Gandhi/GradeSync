@@ -1,15 +1,12 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-# https://pypi.org/project/fullGSapi/
-from fullGSapi.api import client
+from gradescopeClient import GradescopeClient
 import os
 import json 
 from utils import *
 
 app = FastAPI()
-# Load environment variables from the .env file
-GRADESCOPE_CLIENT = client.GradescopeClient()
-
+GRADESCOPE_CLIENT = GradescopeClient()
 # Load JSON variables
 config_path = os.path.join(os.path.dirname(__file__), "config.json")
 with open(config_path, "r") as config_file:
@@ -208,10 +205,13 @@ def fetchAllGrades(class_id: str = None):
 
     Returns:
     - JSON
-
+    
+    # TODO: In the database design, consider if the assignmentID should be the primary key.
+    # TODO: In this function, consider if we need both the assignmentID and title in this JSON
+    # TODO: Create a database table mapping assignmentIDs to titles?
     Example Output:
     {
-        "5211610": [
+        "Lecture Quiz 1: Welcome to CS10 u0026 Abstraction": [
             {
             "Name": "test2",
             "SID": "",
@@ -239,6 +239,6 @@ def fetchAllGrades(class_id: str = None):
     all_ids = get_ids_for_all_assignments(assignment_info)
 
     all_grades = {}
-    for one_id in all_ids:
-        all_grades[one_id] = fetchGrades(class_id, one_id)
+    for title, one_id in all_ids:
+        all_grades[title] = fetchGrades(class_id, one_id)
     return all_grades
