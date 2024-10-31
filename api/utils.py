@@ -252,7 +252,7 @@ def extract_assignment_ids(sub_dict: dict):
 
 def get_ids_for_category(data_dict, category):
     """
-    Get assginment id's for one category
+    Get assignment id's for one category
     """
 
     if category not in data_dict:
