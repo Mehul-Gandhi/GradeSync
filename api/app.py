@@ -98,6 +98,30 @@ def get_assignment_info(class_id: str = None):
     """
     # if class_id is None, use CS10's COURSE_ID
     class_id = class_id or COURSE_ID
+
+    if class_id == COURSE_ID:
+        # Load assignment data from local JSON file
+        try:
+            local_json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")
+            with open(local_json_path, "r") as f:
+                assignments = json.load(f)
+            return assignments
+        except FileNotFoundError:
+            return JSONResponse(
+                content={"error": "File Not Found", "message": "Local cs10_assignments JSON file not found."},
+                status_code=500
+            )
+        except json.JSONDecodeError:
+            return JSONResponse(
+                content={"error": "Invalid JSON", "message": "Failed to parse the local assignments JSON file."},
+                status_code=500
+            )
+        except Exception as e:
+            return JSONResponse(
+                content={"error": "Unknown Error", "message": str(e)},
+                status_code=500
+            )
+
     if not GRADESCOPE_CLIENT.logged_in:
         return JSONResponse(
             content={"error": "Unauthorized access", "message": "User is not logged into Gradescope"},
