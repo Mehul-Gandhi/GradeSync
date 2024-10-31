@@ -259,7 +259,7 @@ def extract_assignment_ids(sub_dict: dict):
 
 def get_ids_for_category(data_dict: dict, category: str) -> list:
     """
-    Get all the assignment id's for one category
+    Get all the assignment IDs for one category
 
     Parameters:
         - data_dict: a dictionary
