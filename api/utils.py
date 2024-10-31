@@ -256,7 +256,8 @@ def get_ids_for_category(data_dict, category):
     """
 
     if category not in data_dict:
-        return "Category not found"
+        print(f"Category: {category} not found")
+        return
     
     category_data = data_dict[category]
     return extract_assignment_ids(category_data)
