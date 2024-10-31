@@ -239,7 +239,7 @@ def extract_assignment_ids(sub_dict: dict):
     """
 
     assignment_ids = []
-    for key, value in sub_dict.items():
+    for _, value in sub_dict.items():
         if isinstance(value, dict):
             if 'assignment_id' in value:
                 assignment_ids.append([value["title"], value['assignment_id']])
@@ -283,7 +283,7 @@ def get_ids_for_all_assignments(data_dict: dict) -> list:
     all_assignment_ids = []
     
     for category in data_dict.keys():
-        ids_for_category = get_ids_for_category(data_dict, category)
+        ids_for_category = get_assignment_ids_for_category(data_dict, category)
         if isinstance(ids_for_category, list):  # Make sure it's a list of IDs
             all_assignment_ids.extend(ids_for_category)
     return all_assignment_ids
