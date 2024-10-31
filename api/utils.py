@@ -262,7 +262,7 @@ def get_ids_for_category(data_dict, category):
     return extract_assignment_ids(category_data)
 
 
-def get_ids_for_all_assignments(data_dict):
+def get_ids_for_all_assignments(data_dict: dict) -> list:
     """
     Extract the assignment id's for all assignments (lecture, labs, projects, etc)
 
