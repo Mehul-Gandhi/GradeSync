@@ -236,7 +236,7 @@ def convert_course_info_to_json(course_info_response: str):
 
     return assignment_to_categories
 
-def extract_assignment_ids(sub_dict):
+def extract_assignment_ids(sub_dict: dict):
     """
     extract the assignment id
     """
