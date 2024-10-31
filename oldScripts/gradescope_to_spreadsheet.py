@@ -15,8 +15,6 @@ import io
 import time
 import warnings
 import functools
-import os
-from dotenv import load_dotenv
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -43,12 +41,9 @@ NUM_LECTURE_DROPS = 3
 # The ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 
-load_dotenv()
-GRADESCOPE_EMAIL = os.getenv("EMAIL")
-GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
-
 # This is not a constant; it is a variable that needs global scope. It should not be modified by the user
 subsheet_titles_to_ids = None
+
 
 
 def deprecated(func):
@@ -161,7 +156,7 @@ def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMEN
 @deprecated
 def initialize_gs_client():
     gradescope_client = client.GradescopeClient()
-    gradescope_client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
+    gradescope_client.prompt_login()
     return gradescope_client
 
 @deprecated
@@ -196,6 +191,14 @@ def get_assignment_id_to_names(gradescope_client):
         assignment_as_json = json.loads(assignment)
         assignment_to_names[str(assignment_as_json["id"])] = assignment_as_json["title"]
     return assignment_to_names
+
+def main():
+    if len(sys.argv) > 1:
+        creds = allow_user_to_authenticate_google_account()
+        gradescope_client = initialize_gs_client()
+        make_score_sheet_for_one_assignment(creds, gradescope_client = gradescope_client)
+    else:
+        populate_instructor_dashboard()
 
 @deprecated
 def populate_instructor_dashboard():
@@ -328,13 +331,4 @@ def populate_instructor_dashboard():
     update_sheet_with_csv(output.getvalue(), sheet_api_instance, dashboard_sheet_id, 0, 3)
     output.close()
 
-def main():
-    if len(sys.argv) > 1:
-        creds = allow_user_to_authenticate_google_account()
-        gradescope_client = initialize_gs_client()
-        make_score_sheet_for_one_assignment(creds, gradescope_client = gradescope_client)
-    else:
-        populate_instructor_dashboard()
-
-if __name__ == "__main__":
-    main()
+main()
