@@ -234,7 +234,6 @@ def fetchAllGrades(class_id: str = None):
         .....
     }
     """
-
     class_id = class_id or COURSE_ID
     assignment_info = get_assignment_info()
     all_ids = get_ids_for_all_assignments(assignment_info)
