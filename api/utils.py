@@ -226,9 +226,16 @@ def convert_course_info_to_json(course_info_response: str):
 
     return assignment_to_categories
 
-def extract_assignment_ids(sub_dict):
+def extract_assignment_ids(sub_dict: dict):
     """
-    extract the assignment id
+    Extracts all assignment IDs from a nested dictionary.
+
+    Parameters:
+        - sub_dict (dict): A dictionary that may contain nested dictionaries with one or more "assignment_id" keys.
+            - Example structure: {"hw": {"score": 4, "assignment_id": 12345, ...}}
+    
+    Output:
+        - A list of assignment id's as strings: ["######", "######", ...., "######"]
     """
 
     assignment_ids = []
@@ -240,19 +247,27 @@ def extract_assignment_ids(sub_dict):
                 assignment_ids.extend(extract_assignment_ids(value))  # Recursively handle nested dictionaries
     return assignment_ids
 
-def get_ids_for_category(data_dict, category):
+def get_assignment_ids_for_category(data_dict: dict, category: str) -> list:
     """
-    Get assginment id's for one category
+    Get all the assignment IDs for one category
+
+    Parameters:
+        - data_dict: a dictionary
+        - category: a key value in data_dict 
+
+    Output:
+        - A list of assignment id's as strings: ["######", "######", ...., "######"]
     """
 
     if category not in data_dict:
-        return "Category not found"
+        print(f"Category: {category} not found")
+        return
     
     category_data = data_dict[category]
     return extract_assignment_ids(category_data)
 
 
-def get_ids_for_all_assignments(data_dict):
+def get_ids_for_all_assignments(data_dict: dict) -> list:
     """
     Extract the assignment id's and titles for all assignments (lecture, labs, projects, etc)
 

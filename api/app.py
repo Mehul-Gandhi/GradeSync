@@ -195,7 +195,7 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     return {"assignment_id": assignment_data.get("assignment_id", "Assignment ID not found.")}
 
 
-@app.get("/FetchAllGrades")
+@app.get("/fetchAllGrades")
 @handle_errors
 def fetchAllGrades(class_id: str = None):
     """
