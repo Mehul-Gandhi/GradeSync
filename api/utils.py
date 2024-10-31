@@ -257,7 +257,7 @@ def extract_assignment_ids(sub_dict: dict):
                 assignment_ids.extend(extract_assignment_ids(value))  # Recursively handle nested dictionaries
     return assignment_ids
 
-def get_ids_for_category(data_dict: dict, category: str) -> list:
+def get_assignment_ids_for_category(data_dict: dict, category: str) -> list:
     """
     Get all the assignment IDs for one category
 
