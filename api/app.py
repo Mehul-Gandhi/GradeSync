@@ -175,7 +175,34 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     >>> get_assignment_id("labs", 2, lab_type=0)
     "6311637"
     """
-    assignments = get_assignment_info(COURSE_ID)
+    # currently no way to specify class_id. 
+    if COURSE_ID:
+        try:
+            # Attempt to load assignments from the JSON file
+            json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")
+            if os.path.exists(json_path):
+                with open(json_path, "r") as file:
+                    assignments = json.load(file)
+            else:
+                # Return an error if the JSON file is not found
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "File Not Found", "message": "Cached CS10 assignments JSON file is missing."}
+                )
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=500,
+                detail={"error": "Data Error", "message": "Failed to decode the cached JSON file."}
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail={"error": "Unexpected Error", "message": str(e)}
+            )
+    else:
+        # If not CS10, fallback to querying GradeScope
+        assignments = get_assignment_info(COURSE_ID)
+
     category_data = assignments.get(category_type)
     if not category_data:
         raise HTTPException(
