@@ -67,7 +67,6 @@ def fetchGrades(class_id: str, assignment_id: str, file_type: str = "json"):
         )
 
 
-
 @app.get("/getAssignmentJSON")
 @handle_errors
 @gradescope_session(GRADESCOPE_CLIENT)
