@@ -1,9 +1,18 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from gradescopeClient import GradescopeClient
 import os
 import json 
 from utils import *
+import gspread
+from google.oauth2.service_account import Credentials
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+credentials_json = os.getenv("SERVICE_ACCOUNT_CREDENTIALS")
+credentials_dict = json.loads(credentials_json)
+credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+client = gspread.authorize(credentials)
 
 app = FastAPI()
 GRADESCOPE_CLIENT = GradescopeClient()
@@ -26,13 +35,14 @@ def read_item(item_id: int, q: str = None):
 @app.get("/getGrades")
 @handle_errors
 @gradescope_session(GRADESCOPE_CLIENT)
-def fetchGrades(class_id: str, assignment_id: str):
+def fetchGrades(class_id: str, assignment_id: str, file_type: str = "json"):
     """
     Fetches student grades from Gradescope as JSON. 
 
     Parameters:
         class_id (str): The ID of the class/course. If not provided, a default ID (COURSE_ID) is used.
         assignment_id (str): The ID of the assignment for which grades are to be fetched.
+        file_type (str): JSON or CSV format. The default type is JSON.
     Returns:
         dict or list: A list of dictionaries containing student grades if the request is successful.
                       If an error occurs, a dictionary with an error message is returned.
@@ -40,6 +50,8 @@ def fetchGrades(class_id: str, assignment_id: str):
         HTTPException: If there is an issue with the request to Gradescope (e.g., network issues).
         Exception: Catches any unexpected errors and includes a descriptive message.
     """
+    # supported filetypes
+    assert file_type in ["csv", "json"], "File type must be either CSV or JSON."
     # If the class_id is not passed in, use the default (CS10) class id
     class_id = class_id or COURSE_ID
     filetype = "csv" # json is not supported
@@ -251,3 +263,22 @@ def fetchAllGrades(class_id: str = None):
     for title, one_id in all_ids:
         all_grades[title] = fetchGrades(class_id, one_id)
     return all_grades
+
+
+@handle_errors
+@app.post("/testWriteToSheet")
+async def write_to_sheet(request: WriteRequest):
+    """
+    Writes a value to a specified cell in a Google Sheet.
+    # NOTE: This function is only used for testing that Google Authentication works 
+    # NOTE: Remove this test function in a future version once more Sheets API endpoints are written.
+    """
+    try:
+        sheet = client.open_by_key(request.spreadsheet_id).worksheet(request.sheet_name)
+        sheet.update_acell(request.cell, request.value)
+        return JSONResponse(content={"message": f"Successfully wrote '{request.value}' to {request.cell}"}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": "Failed to write to cell", "message": str(e)},
+            status_code=500
+        )

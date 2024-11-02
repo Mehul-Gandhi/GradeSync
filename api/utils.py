@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import re
 import json
+from pydantic import BaseModel
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
@@ -287,3 +288,12 @@ def get_ids_for_all_assignments(data_dict: dict) -> list:
         if isinstance(ids_for_category, list):  # Make sure it's a list of IDs
             all_assignment_ids.extend(ids_for_category)
     return all_assignment_ids
+
+class WriteRequest(BaseModel):
+    """
+    This is used in the `testWriteToSheet` API to ensure Google Authentication works.
+    """
+    spreadsheet_id: str
+    sheet_name: str
+    cell: str
+    value: str
