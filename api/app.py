@@ -42,23 +42,18 @@ def fetchGrades(class_id: str, assignment_id: str):
     """
     # If the class_id is not passed in, use the default (CS10) class id
     class_id = class_id or COURSE_ID
-    try:
-        filetype = "csv" # json is not supported
-        GRADESCOPE_CLIENT.last_res = result = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments/{assignment_id}/scores.{filetype}")
-        if result.ok:
-            csv_content = result.content.decode("utf-8")
-            json_content = csv_to_json(csv_content)
-            return json_content
-        else:
-            return JSONResponse(
-                content={"message": f"Failed to fetch grades. "},
-                status_code=int(result.status_code)
-            )
-    except Exception as e:
+    filetype = "csv" # json is not supported
+    GRADESCOPE_CLIENT.last_res = result = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments/{assignment_id}/scores.{filetype}")
+    if result.ok:
+        csv_content = result.content.decode("utf-8")
+        json_content = csv_to_json(csv_content)
+        return json_content
+    else:
         return JSONResponse(
-            content={"error": "Unknown error ", "message": str(e)},
-            status_code=500
+            content={"message": f"Failed to fetch grades. "},
+            status_code=int(result.status_code)
         )
+
 
 @app.get("/getAssignmentJSON")
 @handle_errors
@@ -116,43 +111,31 @@ def get_assignment_info(class_id: str = None):
                 content={"error": "Invalid JSON", "message": "Failed to parse the local assignments JSON file."},
                 status_code=500
             )
-        except Exception as e:
-            return JSONResponse(
-                content={"error": "Unknown Error", "message": str(e)},
-                status_code=500
-            )
-
     if not GRADESCOPE_CLIENT.logged_in:
         return JSONResponse(
             content={"error": "Unauthorized access", "message": "User is not logged into Gradescope"},
             status_code=401
         )
-    try: 
-        GRADESCOPE_CLIENT.last_res = res = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
-        if not res:
-            return JSONResponse(
-            content={"error": "Connection Error", "message": "Failed to connect to Gradescope"},
-            status_code=503
-        )
-        if not res.ok:
-            return JSONResponse(
-            content={"error": "Gradescope Error", "message": f"Gradescope returned a {res.status_code} status code"},
-            status_code=res.status_code
-        )
-        # We return the JSON without JSONResponse so we can reuse this in other APIs easily.
-        # We let FastAPI reformat this for us.
-        json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
-        return json_format_content 
-    except Exception as e:
+    GRADESCOPE_CLIENT.last_res = res = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
+    if not res:
         return JSONResponse(
-            content={"error": "Data Processing Error", "message": str(e)},
-            status_code=500
-        )
+        content={"error": "Connection Error", "message": "Failed to connect to Gradescope"},
+        status_code=503
+    )
+    if not res.ok:
+        return JSONResponse(
+        content={"error": "Gradescope Error", "message": f"Gradescope returned a {res.status_code} status code"},
+        status_code=res.status_code
+    )
+    # We return the JSON without JSONResponse so we can reuse this in other APIs easily.
+    # We let FastAPI reformat this for us.
+    json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
+    return json_format_content
 
 
 @app.get("/getGradeScopeAssignmentID/{category_type}/{assignment_number}")
 @handle_errors
-def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None):
+def get_assignment_id(category_type: str, assignment_number: int, lab_type: int):
     """
     Retrieve the assignment ID based on category, number, and optional lab type (1 for conceptual, 0 for code).
     
@@ -175,7 +158,8 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     >>> get_assignment_id("labs", 2, lab_type=0)
     "6311637"
     """
-    # currently no way to specify class_id. 
+    # currently no way to specify class_id.
+    assert lab_type in [0, 1], "Lab type must be specified."
     assignments = get_assignment_info(COURSE_ID)
     category_data = assignments.get(category_type)
     if not category_data:
