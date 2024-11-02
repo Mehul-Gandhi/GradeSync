@@ -6,7 +6,6 @@ import json
 from utils import *
 import gspread
 from google.oauth2.service_account import Credentials
-from pydantic import BaseModel
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -262,18 +261,13 @@ def fetchAllGrades(class_id: str = None):
     return all_grades
 
 
-class WriteRequest(BaseModel):
-    spreadsheet_id: str
-    sheet_name: str
-    cell: str
-    value: str
-
-
 @handle_errors
 @app.post("/testWriteToSheet")
 async def write_to_sheet(request: WriteRequest):
     """
     Writes a value to a specified cell in a Google Sheet.
+    # NOTE: This function is only used for testing that Google Authentication works 
+    # NOTE: Remove this test function in a future version once more Sheets API endpoints are written.
     """
     try:
         sheet = client.open_by_key(request.spreadsheet_id).worksheet(request.sheet_name)
