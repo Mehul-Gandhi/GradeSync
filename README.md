@@ -7,7 +7,7 @@ GradeSync is a backend microservice that integrates with assessment platforms to
 ### Pre-setup 
 1. Download the Docker Desktop application
 2. In the terminal, run `docker --version` to ensure Docker is correctly installed.
-3. In `/api`, create a `.env` file with the EMAIL and PASSWORD field you use to log into the CS10 Fall 2024 test GradeScope. 
+3. In `/api`, create a `.env` file with the EMAIL and PASSWORD field you use to log into the CS10 Fall 2024 test GradeScope. Additionally, include `SERVICE_ACCOUNT_CREDENTIALS` with the JSON content for a Google Service Account obtained through GCP. This is how the application is authenticated automatically.
 ### How to Launch the App
 
 1. Open the Docker desktop application.

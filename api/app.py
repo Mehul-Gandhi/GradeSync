@@ -1,9 +1,18 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from gradescopeClient import GradescopeClient
 import os
 import json 
 from utils import *
+import gspread
+from google.oauth2.service_account import Credentials
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+credentials_json = os.getenv("SERVICE_ACCOUNT_CREDENTIALS")
+credentials_dict = json.loads(credentials_json)
+credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+client = gspread.authorize(credentials)
 
 app = FastAPI()
 GRADESCOPE_CLIENT = GradescopeClient()
@@ -26,13 +35,14 @@ def read_item(item_id: int, q: str = None):
 @app.get("/getGrades")
 @handle_errors
 @gradescope_session(GRADESCOPE_CLIENT)
-def fetchGrades(class_id: str, assignment_id: str):
+def fetchGrades(class_id: str, assignment_id: str, file_type: str = "json"):
     """
     Fetches student grades from Gradescope as JSON. 
 
     Parameters:
-        class_id (str): The ID of the class/course. If not provided, a default ID (COURSE_ID) is used.
+        class_id (str): The ID of the class/course. If not provided, a default ID (CS_10_COURSE_ID) is used.
         assignment_id (str): The ID of the assignment for which grades are to be fetched.
+        file_type (str): JSON or CSV format. The default type is JSON.
     Returns:
         dict or list: A list of dictionaries containing student grades if the request is successful.
                       If an error occurs, a dictionary with an error message is returned.
@@ -40,25 +50,23 @@ def fetchGrades(class_id: str, assignment_id: str):
         HTTPException: If there is an issue with the request to Gradescope (e.g., network issues).
         Exception: Catches any unexpected errors and includes a descriptive message.
     """
+    # supported filetypes
+    assert file_type in ["csv", "json"], "File type must be either CSV or JSON."
     # If the class_id is not passed in, use the default (CS10) class id
     class_id = class_id or CS_10_COURSE_ID
-    try:
-        filetype = "csv" # json is not supported
-        GRADESCOPE_CLIENT.last_res = result = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments/{assignment_id}/scores.{filetype}")
-        if result.ok:
-            csv_content = result.content.decode("utf-8")
-            json_content = csv_to_json(csv_content)
-            return json_content
-        else:
-            return JSONResponse(
-                content={"message": f"Failed to fetch grades. "},
-                status_code=int(result.status_code)
-            )
-    except Exception as e:
+    filetype = "csv" # json is not supported
+    GRADESCOPE_CLIENT.last_res = result = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments/{assignment_id}/scores.{filetype}")
+    if result.ok:
+        csv_content = result.content.decode("utf-8")
+        json_content = csv_to_json(csv_content)
+        return json_content
+    else:
         return JSONResponse(
-            content={"error": "Unknown error ", "message": str(e)},
-            status_code=500
+            content={"message": f"Failed to fetch grades. "},
+            status_code=int(result.status_code)
         )
+
+
 
 @app.get("/getAssignmentJSON")
 @handle_errors
@@ -98,37 +106,49 @@ def get_assignment_info(class_id: str = None):
     """
     # if class_id is None, use CS10's CS_10_COURSE_ID
     class_id = class_id or CS_10_COURSE_ID
+
+    if class_id == CS_10_COURSE_ID:
+        # Load assignment data from local JSON file
+        try:
+            local_json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")
+            with open(local_json_path, "r") as f:
+                assignments = json.load(f)
+            return assignments
+        except FileNotFoundError:
+            return JSONResponse(
+                content={"error": "File Not Found", "message": "Local cs10_assignments JSON file not found."},
+                status_code=500
+            )
+        except json.JSONDecodeError:
+            return JSONResponse(
+                content={"error": "Invalid JSON", "message": "Failed to parse the local assignments JSON file."},
+                status_code=500
+            )
     if not GRADESCOPE_CLIENT.logged_in:
         return JSONResponse(
             content={"error": "Unauthorized access", "message": "User is not logged into Gradescope"},
             status_code=401
         )
-    try: 
-        GRADESCOPE_CLIENT.last_res = res = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
-        if not res:
-            return JSONResponse(
-            content={"error": "Connection Error", "message": "Failed to connect to Gradescope"},
-            status_code=503
-        )
-        if not res.ok:
-            return JSONResponse(
-            content={"error": "Gradescope Error", "message": f"Gradescope returned a {res.status_code} status code"},
-            status_code=res.status_code
-        )
-        # We return the JSON without JSONResponse so we can reuse this in other APIs easily.
-        # We let FastAPI reformat this for us.
-        json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
-        return json_format_content 
-    except Exception as e:
+    GRADESCOPE_CLIENT.last_res = res = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
+    if not res:
         return JSONResponse(
-            content={"error": "Data Processing Error", "message": str(e)},
-            status_code=500
-        )
+        content={"error": "Connection Error", "message": "Failed to connect to Gradescope"},
+        status_code=503
+    )
+    if not res.ok:
+        return JSONResponse(
+        content={"error": "Gradescope Error", "message": f"Gradescope returned a {res.status_code} status code"},
+        status_code=res.status_code
+    )
+    # We return the JSON without JSONResponse so we can reuse this in other APIs easily.
+    # We let FastAPI reformat this for us.
+    json_format_content = convert_course_info_to_json(str(res.content).replace("\\", "").replace("\\u0026", "&"))
+    return json_format_content
 
 
 @app.get("/getGradeScopeAssignmentID/{category_type}/{assignment_number}")
 @handle_errors
-def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None, class_id: str = CS_10_COURSE_ID):
+def get_assignment_id(category_type: str, assignment_number: int, lab_type: int, class_id: str = CS_10_COURSE_ID):
     """
     Retrieve the assignment ID based on category, number, and optional lab type (1 for conceptual, 0 for code).
     
@@ -136,7 +156,7 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     - data (dict): The assignments data structure.
     - category (str): The assignment category, e.g., 'labs', 'midterms', 'discussions'.
     - number (str or int): The numeric identifier for the assignment.
-    - lab_type (int): Optional for labs; 1 for 'conceptual' and 0 for 'code'.
+    - lab_type (int): Required for labs, but should not be inputted for other assignment types; 1 for 'conceptual' and 0 for 'code'.
     
     Returns:
     - str: Assignment ID or error message if not found.
@@ -151,6 +171,8 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     >>> get_assignment_id("labs", 2, lab_type=0)
     "6311637"
     """
+    # currently no way to specify class_id.
+    assert lab_type in [0, 1], "Lab type must be specified."
     assignments = get_assignment_info(class_id)
     category_data = assignments.get(category_type)
     if not category_data:
@@ -242,3 +264,22 @@ def fetchAllGrades(class_id: str = None):
     for title, one_id in all_ids:
         all_grades[title] = fetchGrades(class_id, one_id)
     return all_grades
+
+
+@handle_errors
+@app.post("/testWriteToSheet")
+async def write_to_sheet(request: WriteRequest):
+    """
+    Writes a value to a specified cell in a Google Sheet.
+    # NOTE: This function is only used for testing that Google Authentication works 
+    # NOTE: Remove this test function in a future version once more Sheets API endpoints are written.
+    """
+    try:
+        sheet = client.open_by_key(request.spreadsheet_id).worksheet(request.sheet_name)
+        sheet.update_acell(request.cell, request.value)
+        return JSONResponse(content={"message": f"Successfully wrote '{request.value}' to {request.cell}"}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": "Failed to write to cell", "message": str(e)},
+            status_code=500
+        )
