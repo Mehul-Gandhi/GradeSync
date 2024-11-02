@@ -13,7 +13,7 @@ with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
 # Hardcoded (for now) GradeScope CS10 Fall 2024 COURSE ID
-COURSE_ID = str(config.get("COURSE_ID"))
+CS_10_COURSE_ID = str(config.get("CS_10_COURSE_ID"))
 
 @app.get("/")
 def read_root():
@@ -41,7 +41,7 @@ def fetchGrades(class_id: str, assignment_id: str):
         Exception: Catches any unexpected errors and includes a descriptive message.
     """
     # If the class_id is not passed in, use the default (CS10) class id
-    class_id = class_id or COURSE_ID
+    class_id = class_id or CS_10_COURSE_ID
     try:
         filetype = "csv" # json is not supported
         GRADESCOPE_CLIENT.last_res = result = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments/{assignment_id}/scores.{filetype}")
@@ -96,8 +96,8 @@ def get_assignment_info(class_id: str = None):
         }
     }
     """
-    # if class_id is None, use CS10's COURSE_ID
-    class_id = class_id or COURSE_ID
+    # if class_id is None, use CS10's CS_10_COURSE_ID
+    class_id = class_id or CS_10_COURSE_ID
     if not GRADESCOPE_CLIENT.logged_in:
         return JSONResponse(
             content={"error": "Unauthorized access", "message": "User is not logged into Gradescope"},
@@ -128,7 +128,7 @@ def get_assignment_info(class_id: str = None):
 
 @app.get("/getGradeScopeAssignmentID/{category_type}/{assignment_number}")
 @handle_errors
-def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None):
+def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None, class_id: str = CS_10_COURSE_ID):
     """
     Retrieve the assignment ID based on category, number, and optional lab type (1 for conceptual, 0 for code).
     
@@ -151,7 +151,7 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int 
     >>> get_assignment_id("labs", 2, lab_type=0)
     "6311637"
     """
-    assignments = get_assignment_info(COURSE_ID)
+    assignments = get_assignment_info(class_id)
     category_data = assignments.get(category_type)
     if not category_data:
         raise HTTPException(
@@ -234,7 +234,7 @@ def fetchAllGrades(class_id: str = None):
         .....
     }
     """
-    class_id = class_id or COURSE_ID
+    class_id = class_id or CS_10_COURSE_ID
     assignment_info = get_assignment_info()
     all_ids = get_ids_for_all_assignments(assignment_info)
 

@@ -8,8 +8,8 @@ import os
 import re
 import json
 load_dotenv()
-GRADESCOPE_EMAIL = os.getenv("EMAIL")
-GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
+GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
+GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
 
 def csv_to_json(csv_content: str):
     """
