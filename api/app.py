@@ -147,7 +147,7 @@ def get_assignment_info(class_id: str = None):
 
 @app.get("/getGradeScopeAssignmentID/{category_type}/{assignment_number}")
 @handle_errors
-def get_assignment_id(category_type: str, assignment_number: int, lab_type: int):
+def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None):
     """
     Retrieve the assignment ID based on category, number, and optional lab type (1 for conceptual, 0 for code).
     
@@ -171,7 +171,6 @@ def get_assignment_id(category_type: str, assignment_number: int, lab_type: int)
     "6311637"
     """
     # currently no way to specify class_id.
-    assert lab_type in [0, 1], "Lab type must be specified."
     assignments = get_assignment_info(COURSE_ID)
     category_data = assignments.get(category_type)
     if not category_data:
