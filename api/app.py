@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, PlainTextResponse
 from gradescopeClient import GradescopeClient
-import os
-import json 
 from utils import *
 import gspread
 from google.oauth2.service_account import Credentials
+from backoff_utils import strategies
+from backoff_utils import backoff
+import requests
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -13,7 +14,6 @@ credentials_json = os.getenv("SERVICE_ACCOUNT_CREDENTIALS")
 credentials_dict = json.loads(credentials_json)
 credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
 client = gspread.authorize(credentials)
-
 app = FastAPI()
 GRADESCOPE_CLIENT = GradescopeClient()
 # Load JSON variables
@@ -22,7 +22,11 @@ with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
 # Hardcoded (for now) GradeScope CS10 Fall 2024 COURSE ID
-CS_10_COURSE_ID = str(config.get("CS_10_COURSE_ID"))
+CS_10_GS_COURSE_ID = str(config.get("CS_10_COURSE_ID"))
+# Hardcoded (for now) PL CS10 Summer 2024 COURSE ID
+CS_10_PL_COURSE_ID = str(config.get("CS_10_PL_COURSE_ID"))
+PL_API_TOKEN = os.getenv("PL_API_TOKEN")
+PL_SERVER = "https://us.prairielearn.com/pl/api/v1"
 
 @app.get("/")
 def read_root():
@@ -53,7 +57,7 @@ def fetchGrades(class_id: str, assignment_id: str, file_type: str = "json"):
     # supported filetypes
     assert file_type in ["csv", "json"], "File type must be either CSV or JSON."
     # If the class_id is not passed in, use the default (CS10) class id
-    class_id = class_id or CS_10_COURSE_ID
+    class_id = class_id or CS_10_GS_COURSE_ID
     filetype = "csv" # json is not supported
     GRADESCOPE_CLIENT.last_res = result = GRADESCOPE_CLIENT.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments/{assignment_id}/scores.{filetype}")
     if result.ok:
@@ -104,9 +108,9 @@ def get_assignment_info(class_id: str = None):
     }
     """
     # if class_id is None, use CS10's CS_10_COURSE_ID
-    class_id = class_id or CS_10_COURSE_ID
+    class_id = class_id or CS_10_GS_COURSE_ID
 
-    if class_id == CS_10_COURSE_ID:
+    if class_id == CS_10_GS_COURSE_ID:
         # Load assignment data from local JSON file
         try:
             local_json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")
@@ -147,7 +151,7 @@ def get_assignment_info(class_id: str = None):
 
 @app.get("/getGradeScopeAssignmentID/{category_type}/{assignment_number}")
 @handle_errors
-def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None, class_id: str = CS_10_COURSE_ID):
+def get_assignment_id(category_type: str, assignment_number: int, lab_type: int = None, class_id: str = CS_10_GS_COURSE_ID):
     """
     Retrieve the assignment ID based on category, number, and optional lab type (1 for conceptual, 0 for code).
     
@@ -254,7 +258,7 @@ def fetchAllGrades(class_id: str = None):
         .....
     }
     """
-    class_id = class_id or CS_10_COURSE_ID
+    class_id = class_id or CS_10_GS_COURSE_ID
     assignment_info = get_assignment_info()
     all_ids = get_ids_for_all_assignments(assignment_info)
 
@@ -281,3 +285,12 @@ async def write_to_sheet(request: WriteRequest):
             content={"error": "Failed to write to cell", "message": str(e)},
             status_code=500
         )
+
+@app.get("/getPLGrades")
+def retrieve_gradebook():
+    course_instance_path = f'/course_instances/{CS_10_PL_COURSE_ID}'
+    headers = {'Private-Token': PL_API_TOKEN}
+    url = PL_SERVER + f"/course_instances/{CS_10_PL_COURSE_ID}/gradebook"
+    r = backoff(requests.get, args = [url], kwargs = {'headers': headers}, max_tries = 3,  max_delay = 30, strategy = strategies.Exponential)
+    data = r.json()
+    return data
