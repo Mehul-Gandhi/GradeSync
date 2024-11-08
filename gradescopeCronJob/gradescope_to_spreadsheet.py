@@ -19,7 +19,12 @@ from googleapiclient.errors import HttpError
 import gspread
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
+from dotenv import load_dotenv
 
+
+load_dotenv()
+GRADESCOPE_EMAIL = os.getenv("EMAIL")
+GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
 
 # CS10 Fa24 course id
 # TODO: Change me
@@ -131,7 +136,7 @@ def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMEN
 @deprecated
 def initialize_gs_client():
     gradescope_client = client.GradescopeClient()
-    gradescope_client.prompt_login()
+    gradescope_client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
     return gradescope_client
 
 @deprecated
