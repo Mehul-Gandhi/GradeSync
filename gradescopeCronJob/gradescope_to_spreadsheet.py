@@ -2,7 +2,7 @@
 
 import json
 
-from fullGSapi.api import client
+from fullGSapi.api import client as GradescopeClient
 import os.path
 import sys
 import re
@@ -131,7 +131,7 @@ def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMEN
 
 @deprecated
 def initialize_gs_client():
-    gradescope_client = client.GradescopeClient()
+    gradescope_client = GradescopeClient.GradescopeClient()
     gradescope_client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
     return gradescope_client
 
