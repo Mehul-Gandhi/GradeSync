@@ -1,9 +1,5 @@
 # Author: Naveen Nathan
 
-"""
-This file is deprecated. Please use 'api/app.py' instead.
-"""
-
 import json
 
 from fullGSapi.api import client
@@ -309,4 +305,5 @@ def populate_instructor_dashboard():
     update_sheet_with_csv(output.getvalue(), sheet_api_instance, dashboard_sheet_id, 0, 3)
     output.close()
 
-main()
+if __name__ == "__main__":
+    main()
