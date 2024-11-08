@@ -15,8 +15,9 @@ import io
 import time
 import warnings
 import functools
-
+from googleapiclient.errors import HttpError
 import gspread
+from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 
 
@@ -86,8 +87,8 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_id = ASSIGNME
         print(err)
 
 @deprecated
-def create_sheet_api_instance(creds):
-    service = client.build("sheets", "v4", credentials=creds)
+def create_sheet_api_instance():
+    service = build("sheets", "v4", credentials=credentials)
     sheet_api_instance = service.spreadsheets()
     return sheet_api_instance
 
@@ -167,15 +168,13 @@ def get_assignment_id_to_names(gradescope_client):
 
 def main():
     if len(sys.argv) > 1:
-        creds = allow_user_to_authenticate_google_account()
         gradescope_client = initialize_gs_client()
-        make_score_sheet_for_one_assignment(creds, gradescope_client = gradescope_client)
+        make_score_sheet_for_one_assignment(credentials, gradescope_client = gradescope_client)
     else:
         populate_instructor_dashboard()
 
 @deprecated
 def populate_instructor_dashboard():
-    creds = allow_user_to_authenticate_google_account()
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
     labs = filter(lambda assignment: "lab" in assignment.lower(),
@@ -194,7 +193,7 @@ def populate_instructor_dashboard():
     discussions = filter(lambda assignment: "discussion" in assignment.lower(),
                   assignment_id_to_names.values())
 
-    sheet_api_instance = create_sheet_api_instance(creds)
+    sheet_api_instance = create_sheet_api_instance()
     sub_sheet_titles_to_ids = get_sub_sheet_titles_to_ids(sheet_api_instance)
     dashboard_sheet_id = sub_sheet_titles_to_ids['Instructor_Dashboard']
     dashboard_dict = {}
