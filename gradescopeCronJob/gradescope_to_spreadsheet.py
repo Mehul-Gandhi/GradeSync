@@ -28,11 +28,11 @@ GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
 
 # CS10 Fa24 course id
 # TODO: Change me
-COURSE_ID = "902165" #"782967"
+COURSE_ID = "831412" #"782967"
 # This scope allows for write access.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = "1Ke-CBw93WkzuX5rYndjrlbyZ31V9jzadNZJP4J98r2k"
-NUMBER_OF_STUDENTS = 187
+NUMBER_OF_STUDENTS = 180
 # Lab number of labs that are not graded.
 UNGRADED_LABS = [0]
 # Used only for Final grade calculation; not for display in the middle of the semester
