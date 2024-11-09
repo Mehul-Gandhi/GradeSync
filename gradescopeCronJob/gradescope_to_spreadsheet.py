@@ -23,7 +23,7 @@ GRADESCOPE_EMAIL = os.getenv("EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
 
 # CS10 Fa24 course id
-# TODO: Change me
+# NOTE: Change this `COURSE_ID` variable to change the semester
 COURSE_ID = "831412" #"782967"
 # This scope allows for write access.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
