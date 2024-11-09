@@ -20,3 +20,9 @@ GradeSync is a backend microservice that integrates with assessment platforms to
 - Click "New Request" to test the API endpoints.
 - Also, create test cases in `api/test_app.py`.
 7. When you are finished, run `docker-compose down` or press CTRL+C to stop the server.
+
+
+### Configuring the database
+1. Install postgres through `brew update` then `brew install postgresql`
+2. Start and enable the PostgreSQL Service through running `brew services start postgresql`
+3. Set up the PostgreSQL User and Database with `sudo -i -u postgres` and then starting the PostgreSQL prompt with `psql`
