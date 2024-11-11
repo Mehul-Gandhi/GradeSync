@@ -3,6 +3,7 @@
 ### 1. Environment Setup
 - Store GradeScope credentials in environment variables `EMAIL` and `PASSWORD`. Define these in a `.env` file.
 - If you do not have a password setup on GradeScope, you will need to create a password.
+- There should be three variables total in the `.env` file. Follow step 2 to add the `SERVICE_ACCOUNT_CREDENTIALS` variable.
 
 ### 2. Google Authentication Setup
 
