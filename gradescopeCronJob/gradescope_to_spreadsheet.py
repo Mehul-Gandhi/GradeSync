@@ -62,7 +62,6 @@ credentials_dict = json.loads(credentials_json)
 credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
 client = gspread.authorize(credentials)
 
-@deprecated
 def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGNMENT_NAME):
     try:
         sub_sheet_titles_to_ids = get_sub_sheet_titles_to_ids(sheet_api_instance)
@@ -89,13 +88,12 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
     except HttpError as err:
         print(err)
 
-@deprecated
 def create_sheet_api_instance():
     service = build("sheets", "v4", credentials=credentials)
     sheet_api_instance = service.spreadsheets()
     return sheet_api_instance
 
-@deprecated
+
 def get_sub_sheet_titles_to_ids(sheet_api_instance):
     global subsheet_titles_to_ids
     if subsheet_titles_to_ids:
@@ -105,7 +103,7 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
                                sheets['sheets']}
     return sub_sheet_titles_to_ids
 
-@deprecated
+
 def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
     push_grade_data_request = {
         'requests': [
@@ -125,18 +123,18 @@ def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIn
     }
     sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=push_grade_data_request).execute()
 
-@deprecated
+
 def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMENT_ID):
     assignment_scores = str(gradescope_client.download_scores(COURSE_ID, assignment_id)).replace("\\n", "\n")
     return assignment_scores
 
-@deprecated
+
 def initialize_gs_client():
     gradescope_client = GradescopeClient.GradescopeClient()
     gradescope_client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
     return gradescope_client
 
-@deprecated
+
 def get_assignment_info(gs_instance, class_id: str) -> bytes:
     if not gs_instance.logged_in:
         print("You must be logged in to download grades!")
@@ -147,7 +145,7 @@ def get_assignment_info(gs_instance, class_id: str) -> bytes:
         return False
     return res.content
 
-@deprecated
+
 def make_score_sheet_for_one_assignment(sheet_api_instance, gradescope_client, assignment_name = ASSIGNMENT_NAME,
                                         assignment_id=ASSIGNMENT_ID):
     assignment_scores = retrieve_grades_from_gradescope(gradescope_client = gradescope_client, assignment_id = assignment_id)
@@ -157,7 +155,7 @@ def make_score_sheet_for_one_assignment(sheet_api_instance, gradescope_client, a
 """
 This method returns a dictionary mapping assignment IDs to the names (titles) of the assignments
 """
-@deprecated
+
 def get_assignment_id_to_names(gradescope_client):
     # The response cannot be parsed as a json as is.
     course_info_response = str(get_assignment_info(gradescope_client, COURSE_ID)).replace("\\", "").replace("\\u0026", "&")
@@ -178,7 +176,7 @@ def main():
     else:
         push_all_grade_data_to_sheets()
 
-@deprecated
+
 def push_all_grade_data_to_sheets():
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
