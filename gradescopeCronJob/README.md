@@ -1,6 +1,6 @@
 # README
 
-- To use this script, you must be a teaching assistant on a CS10 Gradescope course instance.
+- To use this script, your account credentials must be a teaching assistant or instructor on a CS10 Gradescope course instance.
 
 ### 1. Environment Setup
 - Store GradeScope credentials in environment variables `EMAIL` and `PASSWORD`. Define these in a `.env` file.
