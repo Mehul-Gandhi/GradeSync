@@ -3,8 +3,8 @@
 - To use this script, your account credentials must be a teaching assistant or instructor on a CS10 Gradescope course instance.
 
 ### 1. Environment Setup
-- Store GradeScope credentials in environment variables `EMAIL` and `PASSWORD`. Define these in a `.env` file.
-- If you do not have a password setup on GradeScope, you will need to create a password.
+- Store Gradescope credentials in environment variables `EMAIL` and `PASSWORD`. Define these in a `.env` file.
+- If you do not have a password setup on Gradescope, you will need to create a password.
 - There should be three variables total in the `.env` file. Follow step 2 to add the `SERVICE_ACCOUNT_CREDENTIALS` variable.
 ### 2. Google Authentication Setup
 
@@ -45,7 +45,7 @@
 
 ### 3. Set Constants as Necessary
 
-- **COURSE_ID**: The course ID is the final component of the URL on the GradeScope course homepage: `https://www.gradescope.com/courses/[COURSE_ID]`
+- **COURSE_ID**: The course ID is the final component of the URL on the Gradescope course homepage: `https://www.gradescope.com/courses/[COURSE_ID]`
 
 - **SCOPES**: This should not be modified by the user. Use `"https://www.googleapis.com/auth/spreadsheets"` to allow write access.
 
