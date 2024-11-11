@@ -182,6 +182,7 @@ def main():
 def push_all_grade_data_to_sheets():
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
+    # The below code is used to filter assignments by category when populating the instructor dashboard
     """
     labs = filter(lambda assignment: "lab" in assignment.lower(),
                   assignment_id_to_names.values())
@@ -201,8 +202,6 @@ def push_all_grade_data_to_sheets():
     """
     sheet_api_instance = create_sheet_api_instance()
     sub_sheet_titles_to_ids = get_sub_sheet_titles_to_ids(sheet_api_instance)
-    dashboard_sheet_id = sub_sheet_titles_to_ids['Instructor_Dashboard']
-    dashboard_dict = {}
 
     all_lab_ids = set()
     paired_lab_ids = set()
