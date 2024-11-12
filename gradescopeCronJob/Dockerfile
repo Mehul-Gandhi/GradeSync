@@ -25,4 +25,5 @@ RUN chmod 0644 /etc/cron.d/grade_cron
 RUN touch /var/log/cron.log
 
 # Run the command on container startup
-CMD cron && tail -f /var/log/cron.log
+CMD python /gradescopeCronJob/gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1 && cron && tail -f /var/log/cron.log
+#CMD cron && tail -f /var/log/cron.log
