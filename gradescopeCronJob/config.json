@@ -1,0 +1,11 @@
+{
+  "COURSE_ID": "831412",
+  "SCOPES": ["https://www.googleapis.com/auth/spreadsheets"],
+  "SPREADSHEET_ID": "1eCXCPuVEhx8OjS9XUqGmfnAwUc21wfzJwOHFXR-KTjM",
+  "NUMBER_OF_STUDENTS": 180,
+  "UNGRADED_LABS": [0],
+  "TOTAL_LAB_POINTS": 80,
+  "NUM_LECTURES": 24,
+  "SPECIAL_CASE_LABS": [16],
+  "NUM_LECTURE_DROPS": 3
+}

@@ -3,7 +3,7 @@
 - To use this script, your account credentials must be a teaching assistant or instructor on a CS10 Gradescope course instance.
 
 ### 1. Environment Setup
-- Store Gradescope credentials in environment variables `EMAIL` and `PASSWORD`. Define these in a `.env` file.
+- Store Gradescope credentials in environment variables `GRADESCOPE_EMAIL` and `GRADESCOPE_PASSWORD`. Define these in a `.env` file.
 - If you do not have a password setup on Gradescope, you will need to create a password.
 - There should be three variables total in the `.env` file. Follow step 2 to add the `SERVICE_ACCOUNT_CREDENTIALS` variable.
 ### 2. Google Authentication Setup

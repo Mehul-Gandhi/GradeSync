@@ -17,27 +17,34 @@ from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 
-
 load_dotenv()
-GRADESCOPE_EMAIL = os.getenv("EMAIL")
-GRADESCOPE_PASSWORD = os.getenv("PASSWORD")
+GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
+GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
 
-# CS10 Fa24 course id
-# NOTE: Change this `COURSE_ID` variable to change the semester
-COURSE_ID = "831412" #"782967"
-# This scope allows for write access.
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-SPREADSHEET_ID = "1bqXOiAOYnEUD1FHoK1f_uX4PP3gplRR8maQr3S1zmTQ"
-NUMBER_OF_STUDENTS = 180
+# Load JSON variables
+config_path = os.path.join(os.path.dirname(__file__), "config.json")
+with open(config_path, "r") as config_file:
+    config = json.load(config_file)
+
+# IDs to link files
+COURSE_ID = config["COURSE_ID"]
+SCOPES = config["SCOPES"]
+SPREADSHEET_ID = config["SPREADSHEET_ID"]
+
+# Course metadata
+NUMBER_OF_STUDENTS = config["NUMBER_OF_STUDENTS"]
+NUM_LECTURE_DROPS = config["NUM_LECTURE_DROPS"]
+
 # Lab number of labs that are not graded.
-UNGRADED_LABS = [0]
+UNGRADED_LABS = config["UNGRADED_LABS"]
+
 # Used only for Final grade calculation; not for display in the middle of the semester
-TOTAL_LAB_POINTS = 80
-NUM_LECTURES = 24
+TOTAL_LAB_POINTS = config["TOTAL_LAB_POINTS"]
+NUM_LECTURES = config["NUM_LECTURES"]
 
 # Used for labs with 4 parts (very uncommon)
-SPECIAL_CASE_LABS = [16]
-NUM_LECTURE_DROPS = 3
+SPECIAL_CASE_LABS = config["SPECIAL_CASE_LABS"]
+
 
 # The ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
