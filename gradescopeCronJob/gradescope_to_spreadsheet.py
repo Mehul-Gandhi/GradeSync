@@ -92,7 +92,7 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
             sheet_id = sub_sheet_titles_to_ids[assignment_name]
         time.sleep(5)
         update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id)
-        print("Successfully updated spreadsheet with new score data")
+        print("Successfully updated spreadsheet with:   ", assignment_name)
     except HttpError as err:
         print(err)
 
