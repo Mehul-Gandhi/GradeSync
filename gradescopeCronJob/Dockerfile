@@ -2,17 +2,18 @@
 FROM python:3.11-slim
 
 # Set up work directory
-WORKDIR /app
+WORKDIR /gradescopeCronJob
 
-# Copy the requirements.txt and install dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Copy all files
+COPY . /gradescopeCronJob
+
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the Python script to the Docker container
 COPY gradescope_to_spreadsheet.py .
 
 # Install cron
-RUN apt-get update && apt-get install -y cron
+RUN apt-get update && apt-get install -y cron bash
 
 # Add the cron job
 COPY crontab /etc/cron.d/grade_cron
