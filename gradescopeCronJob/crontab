@@ -1,2 +1,1 @@
-# Run every 10 minutes 
-*/10 * * * * python /gradescopeCronJob/gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1
+*/3 * * * * python /gradescopeCronJob/gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1

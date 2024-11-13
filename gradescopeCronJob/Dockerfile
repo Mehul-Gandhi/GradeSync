@@ -24,6 +24,7 @@ RUN chmod 0644 /etc/cron.d/grade_cron
 # Create a log file to be able to inspect cron job execution
 RUN touch /var/log/cron.log
 
-# Run the command on container startup
-CMD python /gradescopeCronJob/gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1 && cron && tail -f /var/log/cron.log
+# Run the Python script once, start cron, and tail the log
+CMD ["sh", "-c", "python gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1 && cron -f && tail -f /var/log/cron.log"]
+#CMD python /gradescopeCronJob/gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1 && cron && tail -f /var/log/cron.log
 #CMD cron && tail -f /var/log/cron.log
