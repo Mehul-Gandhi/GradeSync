@@ -16,6 +16,8 @@ import gspread
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
+import backoff
+
 
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
@@ -51,8 +53,6 @@ SPECIAL_CASE_LABS = config["SPECIAL_CASE_LABS"]
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 ASSIGNMENT_NAME = (len(sys.argv) > 2) and sys.argv[2]
 
-# Amount of time execution should stop (to avoid exceeding the rate limit)
-SLEEP_TIME = 1
 
 # This is not a constant; it is a variable that needs global scope. It should not be modified by the user
 subsheet_titles_to_ids = None
@@ -80,7 +80,7 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
         sheet_id = None
 
         if assignment_name not in sub_sheet_titles_to_ids:
-            create_sheet_request = {
+            create_sheet_rest_request = {
                 "requests": {
                     "addSheet": {
                         "properties": {
@@ -89,11 +89,13 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
                     }
                 }
             }
-            response = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=create_sheet_request).execute()
+            request = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=create_sheet_rest_request)
+
+
+            response = make_request(request)
             sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
         else:
             sheet_id = sub_sheet_titles_to_ids[assignment_name]
-        time.sleep(SLEEP_TIME)
         update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id)
         print("Successfully updated spreadsheet with:   ", assignment_name)
     except HttpError as err:
@@ -110,14 +112,25 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
     if subsheet_titles_to_ids:
         return subsheet_titles_to_ids
     print("Retrieving subsheet titles to ids")
-    sheets = sheet_api_instance.get(spreadsheetId=SPREADSHEET_ID, fields='sheets/properties').execute()
+    request = sheet_api_instance.get(spreadsheetId=SPREADSHEET_ID, fields='sheets/properties')
+    sheets = request.execute()
     subsheet_titles_to_ids = {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in
                                sheets['sheets']}
     return subsheet_titles_to_ids
 
+def backoff_handler():
+    pass
+@backoff.on_exception(
+    backoff.expo,
+    Exception,
+    max_tries=sys.maxsize,
+    on_backoff=backoff_handler,
+)
+def make_request(request):
+    return request.execute()
 
 def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
-    push_grade_data_request = {
+    push_grade_data_rest_request = {
         'requests': [
             {
                 'pasteData': {
@@ -133,7 +146,8 @@ def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIn
             }
         ]
     }
-    sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=push_grade_data_request).execute()
+    request = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=push_grade_data_rest_request)
+    make_request(request)
 
 
 def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMENT_ID):
@@ -181,12 +195,15 @@ def get_assignment_id_to_names(gradescope_client):
     return assignment_to_names
 
 def main():
+    start_time = time.time()
     if len(sys.argv) > 1:
         gradescope_client = initialize_gs_client()
         make_score_sheet_for_one_assignment(credentials, gradescope_client=gradescope_client,
                                             assignment_name=ASSIGNMENT_NAME, assignment_id=ASSIGNMENT_ID)
     else:
         push_all_grade_data_to_sheets()
+    end_time = time.time()
+    print(f"Finished in {round(end_time - start_time, 2)} seconds")
 
 
 def push_all_grade_data_to_sheets():
