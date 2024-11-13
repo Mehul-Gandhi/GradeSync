@@ -1,30 +1,27 @@
-# Base image with Python and cron
+# Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
-# Set up work directory
+# Set the working directory to /gradescopeCronJob
 WORKDIR /gradescopeCronJob
-
-# Copy all files
 COPY . /gradescopeCronJob
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the Python script to the Docker container
-COPY gradescope_to_spreadsheet.py .
+# Install necessary packages
+RUN apt-get update && \
+    apt-get install -y cron bash
 
-# Install cron
-RUN apt-get update && apt-get install -y cron bash
+# Copy the local cron job file to the container's cron.d directory
+COPY cronjob /etc/cron.d/cronjob
 
-# Add the cron job
-COPY crontab /etc/cron.d/grade_cron
+# Give execution rights on the cron job
+RUN chmod 0644 /etc/cron.d/cronjob
 
-# Grant execution rights to the cron job
-RUN chmod 0644 /etc/cron.d/grade_cron
+# Apply the cron job
+RUN crontab /etc/cron.d/cronjob
 
-# Create a log file to be able to inspect cron job execution
+# Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
-# Run the Python script once, start cron, and tail the log
-CMD ["sh", "-c", "python gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1 && cron -f && tail -f /var/log/cron.log"]
-#CMD python /gradescopeCronJob/gradescope_to_spreadsheet.py >> /var/log/cron.log 2>&1 && cron && tail -f /var/log/cron.log
-#CMD cron && tail -f /var/log/cron.log
+# Set up entrypoint to source .env variables and start cron in the background
+CMD ["sh", "-c", "cron -f & tail -f /var/log/cron.log"]
