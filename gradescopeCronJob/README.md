@@ -3,7 +3,7 @@
 - To use this script, your account credentials must be a teaching assistant or instructor on a CS10 Gradescope course instance.
 
 ### 1. Environment Setup
-- Store Gradescope credentials in environment variables `EMAIL` and `PASSWORD`. Define these in a `.env` file.
+- Store Gradescope credentials in environment variables `GRADESCOPE_EMAIL` and `GRADESCOPE_PASSWORD`. Define these in a `.env` file.
 - If you do not have a password setup on Gradescope, you will need to create a password.
 - There should be three variables total in the `.env` file. Follow step 2 to add the `SERVICE_ACCOUNT_CREDENTIALS` variable.
 ### 2. Google Authentication Setup
@@ -43,22 +43,25 @@
     SERVICE_ACCOUNT_CREDENTIALS={"type":"service_account","project_id":"your-project-id","private_key_id":"your-private-key-id","private_key":"-----BEGIN PRIVATE KEY-----\\nMIIEvAIBADANBgkq...\\n-----END PRIVATE KEY-----\\n","client_email":"your-service-account-email@your-project-id.iam.gserviceaccount.com","client_id":"your-client-id","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/your-service-account-email%40your-project-id.iam.gserviceaccount.com"}
     ```
 
-### 3. Set Constants as Necessary
+### 3. Define a config file to define constraints
 
-- **COURSE_ID**: The course ID is the final component of the URL on the Gradescope course homepage: `https://www.gradescope.com/courses/[COURSE_ID]`
+1. **Create a new config file**: Navigate into the folder `gradescopeCronJob/config/`, and create a new config file with the naming scheme `{class}_{semester, year}.json`. For example, the file could be named `cs10_fall2024.json`. 
 
-- **SCOPES**: This should not be modified by the user. Use `"https://www.googleapis.com/auth/spreadsheets"` to allow write access.
+2. **Define the necessary constraints**:
+   - **COURSE_ID**: The course ID is the final component of the URL on the Gradescope course homepage: `https://www.gradescope.com/courses/[COURSE_ID]`
 
-- **SPREADSHEET_ID**: The spreadsheet ID is the final component of the spreadsheet’s URL: `https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit?gid=0#gid=0`
+   - **SCOPES**: This should not be modified by the user. Use `"https://www.googleapis.com/auth/spreadsheets"` to allow write access.
 
-- **NUMBER_OF_STUDENTS**: The number of students enrolled in the course.
+   - **SPREADSHEET_ID**: The spreadsheet ID is the final component of the spreadsheet’s URL: `https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit?gid=0#gid=0`
 
-- **UNGRADED_LABS**: Some labs are not included in the final grade calculation. `UNGRADED_LABS` is a list of such labs. For example, if labs 5 and 6 are not included, set `UNGRADED_LABS` to `[5, 6]`.
+   - **NUMBER_OF_STUDENTS**: The number of students enrolled in the course.
 
-- **TOTAL_LAB_POINTS**: Used only for the final grade calculation; this is the total number of lab points in a semester.
+   - **UNGRADED_LABS**: Some labs are not included in the final grade calculation. `UNGRADED_LABS` is a list of such labs. For example, if labs 5 and 6 are not included, set `UNGRADED_LABS` to `[5, 6]`.
 
-- **NUM_LECTURES**: Used only for the final lecture-quiz grade calculation.
+   - **TOTAL_LAB_POINTS**: Used only for the final grade calculation; this is the total number of lab points in a semester.
 
-- **SPECIAL_CASE_LABS**: A list of 4-part labs (lab assignments with four dropboxes, instead of the typical one or two).
+   - **NUM_LECTURES**: Used only for the final lecture-quiz grade calculation.
 
-- **NUM_LECTURE_DROPS**: The number of drops included in the lecture-quiz grade calculation.
+   - **SPECIAL_CASE_LABS**: A list of 4-part labs (lab assignments with four dropboxes, instead of the typical one or two).
+
+   - **NUM_LECTURE_DROPS**: The number of drops included in the lecture-quiz grade calculation.
