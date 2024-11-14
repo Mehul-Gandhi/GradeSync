@@ -4,9 +4,7 @@ import json
 
 from fullGSapi.api import client as GradescopeClient
 import os.path
-import sys
 import re
-import pandas as pd
 import io
 import time
 import warnings
@@ -17,6 +15,9 @@ from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 import backoff
+# Uncomment below import if you would like to use the spreadsheet dash functionality in populate_instructor_dashboard
+#import pandas as pd
+
 
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
@@ -29,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,  # or DEBUG for more detail
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("/var/log/cron.log"),  # Logs to file
+        #logging.FileHandler("/var/log/cron.log"),  # Logs to file
         logging.StreamHandler(sys.stdout)  # Logs to console (stdout)
     ]
 )
@@ -227,7 +228,6 @@ def main():
     end_time = time.time()
     logger.info(f"Finished in {round(end_time - start_time, 2)} seconds")
 
-
 def push_all_grade_data_to_sheets():
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
@@ -263,7 +263,7 @@ def push_all_grade_data_to_sheets():
         #    assignment_id_to_currency_status[id] = assignment_scores
 
 
-
+# Need to import pandas if you would like to use this function.
 def populate_instructor_dashboard(all_lab_ids, assignment_id_to_currency_status, assignment_id_to_names,
                                   assignment_names_to_ids, dashboard_dict, dashboard_sheet_id, discussions,
                                   extract_number_from_lab_title, id, lecture_quizzes, paired_lab_ids,
