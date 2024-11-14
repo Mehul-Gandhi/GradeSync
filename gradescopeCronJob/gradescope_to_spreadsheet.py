@@ -65,6 +65,9 @@ SPECIAL_CASE_LABS = config["SPECIAL_CASE_LABS"]
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 ASSIGNMENT_NAME = (len(sys.argv) > 2) and sys.argv[2]
 
+# Amount of time execution should stop (to avoid exceeding the rate limit)
+SLEEP_TIME = 1
+
 # This is not a constant; it is a variable that needs global scope. It should not be modified by the user
 subsheet_titles_to_ids = None
 
@@ -104,7 +107,7 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
             sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
         else:
             sheet_id = sub_sheet_titles_to_ids[assignment_name]
-        time.sleep(5)
+        time.sleep(SLEEP_TIME)
         update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id)
         logger.info(f"Successfully updated spreadsheet with: {assignment_name}")
     except HttpError as err:
@@ -120,10 +123,11 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
     global subsheet_titles_to_ids
     if subsheet_titles_to_ids:
         return subsheet_titles_to_ids
+    print("Retrieving subsheet titles to ids")
     sheets = sheet_api_instance.get(spreadsheetId=SPREADSHEET_ID, fields='sheets/properties').execute()
-    sub_sheet_titles_to_ids = {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in
+    subsheet_titles_to_ids = {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in
                                sheets['sheets']}
-    return sub_sheet_titles_to_ids
+    return subsheet_titles_to_ids
 
 
 def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
@@ -221,7 +225,6 @@ def push_all_grade_data_to_sheets():
                   assignment_id_to_names.values())
     """
     sheet_api_instance = create_sheet_api_instance()
-    sub_sheet_titles_to_ids = get_sub_sheet_titles_to_ids(sheet_api_instance)
 
     all_lab_ids = set()
     paired_lab_ids = set()
