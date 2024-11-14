@@ -20,6 +20,21 @@ from dotenv import load_dotenv
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
+import logging
+import sys
+
+# Configure logging to output to both file and console
+logging.basicConfig(
+    level=logging.INFO,  # or DEBUG for more detail
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("/var/log/cron.log"),  # Logs to file
+        logging.StreamHandler(sys.stdout)  # Logs to console (stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
+logger.info("Starting the gradescope_to_spreadsheet script.")
 
 # Load JSON variables
 class_json_name = 'cs10_fall2024.json'
@@ -91,9 +106,9 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
             sheet_id = sub_sheet_titles_to_ids[assignment_name]
         time.sleep(5)
         update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id)
-        print("Successfully updated spreadsheet with:   ", assignment_name)
+        logger.info(f"Successfully updated spreadsheet with: {assignment_name}")
     except HttpError as err:
-        print(err)
+        logger.error(err)
 
 def create_sheet_api_instance():
     service = build("sheets", "v4", credentials=credentials)
@@ -144,11 +159,11 @@ def initialize_gs_client():
 
 def get_assignment_info(gs_instance, class_id: str) -> bytes:
     if not gs_instance.logged_in:
-        print("You must be logged in to download grades!")
+        logger.error("You must be logged in to download grades!")
         return False
     gs_instance.last_res = res = gs_instance.session.get(f"https://www.gradescope.com/courses/{class_id}/assignments")
     if not res or not res.ok:
-        print(f"Failed to get a response from gradescope! Got: {res}")
+        logger.error(f"Failed to get a response from gradescope! Got: {res}")
         return False
     return res.content
 

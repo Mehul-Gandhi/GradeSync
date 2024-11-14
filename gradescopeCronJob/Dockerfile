@@ -23,5 +23,6 @@ RUN crontab /etc/cron.d/cronjob
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
-# Set up entrypoint to source .env variables and start cron in the background
+# Start cron in the background
 CMD ["sh", "-c", "cron -f & tail -f /var/log/cron.log"]
+#CMD ["sh", "-c", "cron -f & tail -f /var/log/cron.log"]
