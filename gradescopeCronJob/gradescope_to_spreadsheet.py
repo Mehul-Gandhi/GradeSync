@@ -115,7 +115,7 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
         logger.info(f"Successfully updated spreadsheet with: {assignment_name} after {number_of_retries_needed_to_update_sheet} retries")
         number_of_retries_needed_to_update_sheet = 0
     except HttpError as err:
-        logger.error(err)
+        logger.error(f"An HttpError has occurred: {err}")
 except Exception as err:
     logger.error(f"An unknown error has occurred: {err}")
 def create_sheet_api_instance():
