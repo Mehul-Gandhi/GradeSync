@@ -24,5 +24,4 @@ RUN crontab /etc/cron.d/cronjob
 RUN touch /var/log/cron.log
 
 # Start cron in the background
-CMD ["sh", "-c", "cron -f & tail -f /var/log/cron.log"]
-#CMD ["sh", "-c", "cron -f & tail -f /var/log/cron.log"]
+CMD sh -c "/usr/local/bin/python3 /gradescopeCronJob/gradescope_to_spreadsheet.py && cron -f & tail -f /var/log/cron.log"
