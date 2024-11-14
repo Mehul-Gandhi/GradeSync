@@ -30,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,  # or DEBUG for more detail
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("/var/log/cron.log"),  # Logs to file
+        #logging.FileHandler("/var/log/cron.log"),  # Logs to file
         logging.StreamHandler(sys.stdout)  # Logs to console (stdout)
     ]
 )
@@ -116,8 +116,8 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
         number_of_retries_needed_to_update_sheet = 0
     except HttpError as err:
         logger.error(f"An HttpError has occurred: {err}")
-except Exception as err:
-    logger.error(f"An unknown error has occurred: {err}")
+    except Exception as err:
+        logger.error(f"An unknown error has occurred: {err}")
 def create_sheet_api_instance():
     service = build("sheets", "v4", credentials=credentials)
     sheet_api_instance = service.spreadsheets()
