@@ -65,3 +65,77 @@
    - **SPECIAL_CASE_LABS**: A list of 4-part labs (lab assignments with four dropboxes, instead of the typical one or two).
 
    - **NUM_LECTURE_DROPS**: The number of drops included in the lecture-quiz grade calculation.
+
+---
+
+# 4. Docker Container
+
+#### Prerequisites
+
+- Docker installed on your system.
+
+## Build and Run the Docker Container
+
+### Step 1: Build the Docker Image
+
+In this directory, run the following command to build the Docker image:
+
+```bash
+docker build -t gradescope-cron-job .
+```
+
+This command will create a Docker image with the cron job configuration and necessary dependencies.
+
+### Step 2: Run the Docker Container
+
+Once the image is built, start the container in detached mode:
+
+```bash
+docker run -d --name gradescope-cron-container gradescope-cron-job
+```
+
+This command will run the container in the background.
+
+### Step 3: Monitor the Logs
+
+To view the cron job output, check the container logs. Use the following command to follow the logs in real-time:
+
+```bash
+docker logs -f gradescope-cron-container
+```
+
+Replace `gradescope-cron-job` with the actual container ID if needed. This command will display live logs, allowing you to monitor the cron job’s execution.
+
+### Example Log Command with Container ID
+
+Alternatively, if you know the container ID, you can run:
+
+```bash
+docker logs -f e9b989ea03676f2141b1014891f436c7b3061320a479d8fa3231a4426c84d4c1
+```
+- e9b989ea03676f2141b1014891f436c7b3061320a479d8fa3231a4426c84d4c1 is an example to replace with the containerID.
+
+## Configuration
+
+- The cron job schedule and script configurations are set up within the Dockerfile and accompanying cron job files.
+- Logs are stored in `/var/log/cron.log` within the container and are accessible through Docker logs as shown.
+
+## Stopping the Container
+
+To stop the running container:
+
+```bash
+docker stop gradescope-cron-container
+```
+
+## Removing the Container
+
+If you wish to remove the container after stopping it:
+
+```bash
+docker rm gradescope-cron-container
+```
+
+## Troubleshooting
+
+- **Container isn’t starting**: Check Docker build output for errors during the image creation step.
