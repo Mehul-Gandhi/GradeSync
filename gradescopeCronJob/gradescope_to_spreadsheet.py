@@ -30,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,  # or DEBUG for more detail
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        #logging.FileHandler("/var/log/cron.log"),  # Logs to file
+        logging.FileHandler("/var/log/cron.log"),  # Logs to file
         logging.StreamHandler(sys.stdout)  # Logs to console (stdout)
     ]
 )
@@ -137,7 +137,7 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
 
 def is_429_error(exception):
     return isinstance(exception, HttpError) and exception.resp.status == 429
-def backoff_handler():
+def backoff_handler(backoff_response=None):
     global number_of_retries_needed_to_update_sheet
     number_of_retries_needed_to_update_sheet += 1
     pass
