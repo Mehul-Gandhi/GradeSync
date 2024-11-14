@@ -107,8 +107,6 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
                 }
             }
             request = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=create_sheet_rest_request)
-
-
             response = make_request(request)
             sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
         else:
