@@ -18,7 +18,6 @@ from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 import backoff
 
-
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
@@ -30,7 +29,7 @@ logging.basicConfig(
     level=logging.INFO,  # or DEBUG for more detail
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("/var/log/cron.log"),  # Logs to file
+        #logging.FileHandler("/var/log/cron.log"),  # Logs to file
         logging.StreamHandler(sys.stdout)  # Logs to console (stdout)
     ]
 )
@@ -70,6 +69,8 @@ ASSIGNMENT_NAME = (len(sys.argv) > 2) and sys.argv[2]
 
 # This is not a constant; it is a variable that needs global scope. It should not be modified by the user
 subsheet_titles_to_ids = None
+# Tracking the number of_attempts to_update a sheet.
+number_of_retries_needed_to_update_sheet = 0
 
 def deprecated(func):
     @functools.wraps(func)
@@ -88,6 +89,7 @@ credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCO
 client = gspread.authorize(credentials)
 
 def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGNMENT_NAME):
+    global number_of_retries_needed_to_update_sheet
     try:
         sub_sheet_titles_to_ids = get_sub_sheet_titles_to_ids(sheet_api_instance)
 
@@ -111,7 +113,8 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
         else:
             sheet_id = sub_sheet_titles_to_ids[assignment_name]
         update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id)
-        logger.info(f"Successfully updated spreadsheet with: {assignment_name}")
+        logger.info(f"Successfully updated spreadsheet with: {assignment_name} after {number_of_retries_needed_to_update_sheet} retries")
+        number_of_retries_needed_to_update_sheet = 0
     except HttpError as err:
         logger.error(err)
 
@@ -125,20 +128,25 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
     global subsheet_titles_to_ids
     if subsheet_titles_to_ids:
         return subsheet_titles_to_ids
-    print("Retrieving subsheet titles to ids")
+    logger.info("Retrieving subsheet titles to ids")
     request = sheet_api_instance.get(spreadsheetId=SPREADSHEET_ID, fields='sheets/properties')
     sheets = request.execute()
     subsheet_titles_to_ids = {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in
                                sheets['sheets']}
     return subsheet_titles_to_ids
 
+def is_429_error(exception):
+    return isinstance(exception, HttpError) and exception.resp.status == 429
 def backoff_handler():
+    global number_of_retries_needed_to_update_sheet
+    number_of_retries_needed_to_update_sheet += 1
     pass
 @backoff.on_exception(
     backoff.expo,
     Exception,
-    max_tries=sys.maxsize,
+    max_tries=5,
     on_backoff=backoff_handler,
+    giveup=lambda e: not is_429_error(e)
 )
 def make_request(request):
     return request.execute()
@@ -217,7 +225,7 @@ def main():
     else:
         push_all_grade_data_to_sheets()
     end_time = time.time()
-    print(f"Finished in {round(end_time - start_time, 2)} seconds")
+    logger.info(f"Finished in {round(end_time - start_time, 2)} seconds")
 
 
 def push_all_grade_data_to_sheets():
