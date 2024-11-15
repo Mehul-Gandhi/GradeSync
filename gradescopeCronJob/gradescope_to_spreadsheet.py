@@ -73,6 +73,8 @@ subsheet_titles_to_ids = None
 # Tracking the number of_attempts to_update a sheet.
 number_of_retries_needed_to_update_sheet = 0
 
+requests = []
+
 def deprecated(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -111,8 +113,8 @@ def writeToSheet(sheet_api_instance, assignment_scores, assignment_name = ASSIGN
             sheet_id = response['replies'][0]['addSheet']['properties']['sheetId']
         else:
             sheet_id = sub_sheet_titles_to_ids[assignment_name]
-        update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id)
-        logger.info(f"Successfully updated spreadsheet with: {assignment_name} after {number_of_retries_needed_to_update_sheet} retries")
+        assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, sheet_id)
+        logger.info(f"Created sheets request for {assignment_name}")
         number_of_retries_needed_to_update_sheet = 0
     except HttpError as err:
         logger.error(f"An HttpError has occurred: {err}")
@@ -130,7 +132,7 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
         return subsheet_titles_to_ids
     logger.info("Retrieving subsheet titles to ids")
     request = sheet_api_instance.get(spreadsheetId=SPREADSHEET_ID, fields='sheets/properties')
-    sheets = request.execute()
+    sheets = make_request(request)
     subsheet_titles_to_ids = {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in
                                sheets['sheets']}
     return subsheet_titles_to_ids
@@ -141,6 +143,10 @@ def backoff_handler(backoff_response=None):
     global number_of_retries_needed_to_update_sheet
     number_of_retries_needed_to_update_sheet += 1
     pass
+
+def store_request(request):
+    requests.append(request)
+
 @backoff.on_exception(
     backoff.expo,
     Exception,
@@ -151,11 +157,10 @@ def backoff_handler(backoff_response=None):
 def make_request(request):
     return request.execute()
 
-def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
+def assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
+    assignment_scores = ""
     push_grade_data_rest_request = {
-        'requests': [
-            {
-                'pasteData': {
+            'pasteData': {
                     "coordinate": {
                         "sheetId": sheet_id,
                         "rowIndex": rowIndex,
@@ -164,12 +169,9 @@ def update_sheet_with_csv(assignment_scores, sheet_api_instance, sheet_id, rowIn
                     "data": assignment_scores,
                     "type": 'PASTE_NORMAL',
                     "delimiter": ',',
-                }
             }
-        ]
     }
-    request = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=push_grade_data_rest_request)
-    make_request(request)
+    store_request(push_grade_data_rest_request)
 
 
 def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMENT_ID):
@@ -194,8 +196,8 @@ def get_assignment_info(gs_instance, class_id: str) -> bytes:
     return res.content
 
 
-def make_score_sheet_for_one_assignment(sheet_api_instance, gradescope_client, assignment_name = ASSIGNMENT_NAME,
-                                        assignment_id=ASSIGNMENT_ID):
+def prepare_request_for_one_assignment(sheet_api_instance, gradescope_client, assignment_name = ASSIGNMENT_NAME,
+                                       assignment_id=ASSIGNMENT_ID):
     assignment_scores = retrieve_grades_from_gradescope(gradescope_client = gradescope_client, assignment_id = assignment_id)
     writeToSheet(sheet_api_instance, assignment_scores, assignment_name)
     return assignment_scores
@@ -216,12 +218,24 @@ def get_assignment_id_to_names(gradescope_client):
         assignment_to_names[str(assignment_as_json["id"])] = assignment_as_json["title"]
     return assignment_to_names
 
+def make_batch_request(sheet_api_instance):
+    global requests
+    rest_batch_request = {
+        "requests": requests
+    }
+    batch_request = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=rest_batch_request)
+    logger.info(f"Issuing batch request")
+    make_request(batch_request)
+    logger.info(f"Completing batch request")
+
 def main():
     start_time = time.time()
     if len(sys.argv) > 1:
         gradescope_client = initialize_gs_client()
-        make_score_sheet_for_one_assignment(credentials, gradescope_client=gradescope_client,
-                                            assignment_name=ASSIGNMENT_NAME, assignment_id=ASSIGNMENT_ID)
+        prepare_request_for_one_assignment(credentials, gradescope_client=gradescope_client,
+                                           assignment_name=ASSIGNMENT_NAME, assignment_id=ASSIGNMENT_ID)
+        sheet_api_instance = create_sheet_api_instance()
+        make_batch_request(sheet_api_instance)
     else:
         push_all_grade_data_to_sheets()
     end_time = time.time()
@@ -255,9 +269,11 @@ def push_all_grade_data_to_sheets():
 
     # An assignment is marked as current if there are >3 submissions and if the commented code in the for loop below is removed
     assignment_id_to_currency_status = {}
+    requests = []
     for id in assignment_id_to_names:
-        assignment_scores = make_score_sheet_for_one_assignment(sheet_api_instance, gradescope_client=gradescope_client,
-                                                                assignment_name=assignment_id_to_names[id], assignment_id=id)
+        prepare_request_for_one_assignment(sheet_api_instance, gradescope_client=gradescope_client,
+                                                               assignment_name=assignment_id_to_names[id], assignment_id=id)
+    make_batch_request(sheet_api_instance)
         #if assignment_scores.count("Graded") >= 3:
         #    assignment_id_to_currency_status[id] = assignment_scores
 
@@ -350,7 +366,7 @@ def populate_instructor_dashboard(all_lab_ids, assignment_id_to_currency_status,
     dashboard_df = pd.DataFrame(dashboard_dict_with_aggregate_columns).set_index(first_column_name)
     output = io.StringIO()
     dashboard_df.to_csv(output)
-    update_sheet_with_csv(output.getvalue(), sheet_api_instance, dashboard_sheet_id, 0, 3)
+    assemble_rest_request_for_assignment(output.getvalue(), sheet_api_instance, dashboard_sheet_id, 0, 3)
     output.close()
 
 
