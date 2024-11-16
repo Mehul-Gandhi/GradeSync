@@ -276,7 +276,6 @@ def push_all_grade_data_to_sheets():
 
     # An assignment is marked as current if there are >3 submissions and if the commented code in the for loop below is removed
     assignment_id_to_currency_status = {}
-    requests = []
     for id in assignment_id_to_names:
         prepare_request_for_one_assignment(sheet_api_instance, gradescope_client=gradescope_client,
                                                                assignment_name=assignment_id_to_names[id], assignment_id=id)
