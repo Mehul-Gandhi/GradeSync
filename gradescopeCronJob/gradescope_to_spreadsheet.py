@@ -237,7 +237,10 @@ For every assignment:
     If there is no corresponding subsheet for the assignment:
         Make a subsheet
     Create a write request for the subsheet, and store the request in a list
-Execute all write requests in the list
+4. Execute all write requests in the list
+NOTE: This script invokes only one API call to Google Sheets.
+TODO: Create a docstring explaining how the script runs if there are arguments passed in when running this script.
+TODO: Make a short documentation comment about the instructor dashboard.
 """
 def main():
     start_time = time.time()
