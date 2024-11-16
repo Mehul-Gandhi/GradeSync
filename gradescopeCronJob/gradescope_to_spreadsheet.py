@@ -233,7 +233,7 @@ This script retrieves data from a Gradescope course instance and writes the data
 1. Retrieves a list of assignments from Gradescope
 2. Determines which assignments already have sub sheets in the configured Google spreadsheet
 For every assignment:
-    Query students’ grades from gradescope
+    Query students’ grades from Gradescope
     If there is no corresponding subsheet for the assignment:
         Make a subsheet
     Create a write request for the subsheet, and store it in a list
