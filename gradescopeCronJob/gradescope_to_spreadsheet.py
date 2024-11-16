@@ -30,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,  # or DEBUG for more detail
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("/var/log/cron.log"),  # Logs to file
+        #logging.FileHandler("/var/log/cron.log"),  # Logs to file
         logging.StreamHandler(sys.stdout)  # Logs to console (stdout)
     ]
 )
@@ -228,16 +228,19 @@ def make_batch_request(sheet_api_instance):
     make_request(batch_request)
     logger.info(f"Completing batch request")
 
+"""
+Retrieve list of assignments from GS
+Determine which assignments already have sub sheets in the spreadsheet
+For every assignment:
+    Query students’ grades from gradescope
+    If there is no corresponding subsheet for the assignment:
+        Make a subsheet
+    Create a write request for the subsheet, and store it in a list
+Execute all write requests in the list
+"""
 def main():
     start_time = time.time()
-    if len(sys.argv) > 1:
-        gradescope_client = initialize_gs_client()
-        prepare_request_for_one_assignment(credentials, gradescope_client=gradescope_client,
-                                           assignment_name=ASSIGNMENT_NAME, assignment_id=ASSIGNMENT_ID)
-        sheet_api_instance = create_sheet_api_instance()
-        make_batch_request(sheet_api_instance)
-    else:
-        push_all_grade_data_to_sheets()
+    push_all_grade_data_to_sheets()
     end_time = time.time()
     logger.info(f"Finished in {round(end_time - start_time, 2)} seconds")
 
