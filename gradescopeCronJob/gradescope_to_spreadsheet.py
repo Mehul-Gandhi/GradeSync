@@ -231,7 +231,7 @@ def make_batch_request(sheet_api_instance):
 """
 This script retrieves data from a Gradescope course instance and writes the data to Google Sheets. If there are no arguments passed into this script, this script will do the following:
 1. Retrieves a list of assignments from Gradescope
-Determine which assignments already have sub sheets in the spreadsheet
+2. Determines which assignments already have sub sheets in the configured Google spreadsheet
 For every assignment:
     Query students’ grades from gradescope
     If there is no corresponding subsheet for the assignment:
