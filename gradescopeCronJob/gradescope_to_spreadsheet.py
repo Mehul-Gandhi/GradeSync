@@ -229,7 +229,8 @@ def make_batch_request(sheet_api_instance):
     logger.info(f"Completing batch request")
 
 """
-Retrieve list of assignments from GS
+This script retrieves data from a Gradescope course instance and writes the data to Google Sheets. If there are no arguments passed into this script, this script will do the following:
+1. Retrieves a list of assignments from Gradescope
 Determine which assignments already have sub sheets in the spreadsheet
 For every assignment:
     Query students’ grades from gradescope
