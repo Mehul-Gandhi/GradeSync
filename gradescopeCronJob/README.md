@@ -68,6 +68,14 @@
 
 ---
 
+# 4. Set up the spreadsheet
+1. **Create subsheets with each of the following names**
+   - Labs
+   - Projects
+   - Lecture Quizzes
+   - Midterms
+2.  **Paste the Roster in each of the above sheets, with the first three columns being First Name, Last Name, and Student ID**
+
 # 4. Docker Container
 
 #### Prerequisites
