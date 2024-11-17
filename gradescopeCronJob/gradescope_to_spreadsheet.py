@@ -158,7 +158,6 @@ def make_request(request):
     return request.execute()
 
 def assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
-    assignment_scores = ""
     push_grade_data_rest_request = {
             'pasteData': {
                     "coordinate": {
