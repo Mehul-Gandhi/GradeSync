@@ -68,6 +68,7 @@ ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 ASSIGNMENT_NAME = (len(sys.argv) > 2) and sys.argv[2]
 
 GRADE_RETRIEVAL_SPREADSHEET_FORMULA = '=DIVIDE(XLOOKUP(C:C, INDIRECT( INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!C:C"), INDIRECT(INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!F:F")), XLOOKUP(C:C, INDIRECT( INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!C:C"), INDIRECT(INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!G:G")))'
+DISCUSSION_COMPLETION_INDICATOR_FORMULA = '=ARRAYFORMULA(IF(INDIRECT( INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!H:H")="Missing", 0,  IF(A:A<>"", 1, "")))'
 
 
 # This is not a constant; it is a variable that needs global scope. It should not be modified by the user
@@ -252,6 +253,7 @@ def populate_spreadsheet_gradebook(assignment_id_to_names):
     filter_by_assignment_category = lambda category: lambda assignment: category in assignment.lower()
 
     labs = set(filter(filter_by_assignment_category("lab"), assignment_names))
+    discussions = set(filter(filter_by_assignment_category("discussion"), assignment_names))
     projects = set(filter(filter_by_assignment_category("project"), assignment_names))
     lecture_quizzes = set(filter(filter_by_assignment_category("lecture"), assignment_names))
     midterms = set(filter(filter_by_assignment_category("midterm"), assignment_names))
@@ -263,13 +265,14 @@ def populate_spreadsheet_gradebook(assignment_id_to_names):
         return 0
 
     sorted_labs = sorted(labs, key=extract_number_from_assignment_title)
+    sorted_discussions = sorted(discussions, key=extract_number_from_assignment_title)
     sorted_projects = sorted(projects, key=extract_number_from_assignment_title)
     sorted_lecture_quizzes = sorted(lecture_quizzes, key=extract_number_from_assignment_title)
     sorted_midterms = sorted(midterms, key=extract_number_from_assignment_title)
 
     formula_list = [GRADE_RETRIEVAL_SPREADSHEET_FORMULA] * NUMBER_OF_STUDENTS
-
-    def produce_gradebook_for_category(sorted_assignment_list, category):
+    discussion_formula_list = [DISCUSSION_COMPLETION_INDICATOR_FORMULA]
+    def produce_gradebook_for_category(sorted_assignment_list, category, formula_list):
         global subsheet_titles_to_ids
         grade_dict = {name : formula_list for name in sorted_assignment_list}
         grade_df = pd.DataFrame(grade_dict).set_index(sorted_assignment_list[0])
@@ -279,10 +282,11 @@ def populate_spreadsheet_gradebook(assignment_id_to_names):
         output.close()
         assemble_rest_request_for_assignment(grades_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[category], rowIndex=0, columnIndex=3)
 
-    produce_gradebook_for_category(sorted_labs, "Labs")
-    produce_gradebook_for_category(sorted_projects, "Projects")
-    produce_gradebook_for_category(sorted_lecture_quizzes, "Lecture Quizzes")
-    produce_gradebook_for_category(sorted_midterms, "Midterms")
+    produce_gradebook_for_category(sorted_labs, "Labs", formula_list)
+    produce_gradebook_for_category(sorted_discussions, "Discussions", discussion_formula_list)
+    produce_gradebook_for_category(sorted_projects, "Projects", formula_list)
+    produce_gradebook_for_category(sorted_lecture_quizzes, "Lecture Quizzes", formula_list)
+    produce_gradebook_for_category(sorted_midterms, "Midterms", formula_list)
 
 def create_gradebook_column_request(assignments, type):
     global subsheet_titles_to_ids

@@ -71,6 +71,7 @@
 # 4. Set up the spreadsheet
 1. **Create subsheets with each of the following names**
    - Labs
+   - Discussions
    - Projects
    - Lecture Quizzes
    - Midterms
