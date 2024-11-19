@@ -247,11 +247,10 @@ def push_all_grade_data_to_sheets():
 
 
 def populate_spreadsheet_gradebook(assignment_id_to_names):
-
+    is_not_optional =  lambda assignment: not "optional" in assignment.lower()
+    assignment_names = set(filter(is_not_optional, assignment_id_to_names.values()))
     # The below code is used to filter assignments by category when populating the instructor dashboard
-    assignment_names = assignment_id_to_names.values()
     filter_by_assignment_category = lambda category: lambda assignment: category in assignment.lower()
-
     labs = set(filter(filter_by_assignment_category("lab"), assignment_names))
     discussions = set(filter(filter_by_assignment_category("discussion"), assignment_names))
     projects = set(filter(filter_by_assignment_category("project"), assignment_names))
@@ -273,6 +272,8 @@ def populate_spreadsheet_gradebook(assignment_id_to_names):
     formula_list = [GRADE_RETRIEVAL_SPREADSHEET_FORMULA] * NUMBER_OF_STUDENTS
     discussion_formula_list = [DISCUSSION_COMPLETION_INDICATOR_FORMULA]
     def produce_gradebook_for_category(sorted_assignment_list, category, formula_list):
+        if not sorted_assignment_list:
+            return
         global subsheet_titles_to_ids
         grade_dict = {name : formula_list for name in sorted_assignment_list}
         grade_df = pd.DataFrame(grade_dict).set_index(sorted_assignment_list[0])
