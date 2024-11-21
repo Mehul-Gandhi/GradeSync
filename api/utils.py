@@ -8,6 +8,10 @@ import os
 import re
 import json
 from pydantic import BaseModel
+import logging
+import traceback
+
+logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
@@ -65,17 +69,20 @@ def handle_errors(func):
         
         except (ValueError, TypeError, AttributeError) as e:
             # Handle client-side errors (400-level)
-            print(f"Client-side error: {e}")
+            tb = traceback.format_exc()
+            logging.error(f"Client-side error: {e}\nTraceback:\n{tb}")
             raise HTTPException(status_code=400, detail="Invalid request: missing or incorrect parameters.")
         
         except RequestException as e:
             # Handle network-related errors (503-level)
-            print(f"Network error: {e}")
+            tb = traceback.format_exc()
+            logging.error(f"Network error: {e}\nTraceback:\n{tb}")
             raise HTTPException(status_code=503, detail="Service unavailable: network error while connecting to Gradescope.")
         
         except Exception as e:
             # Handle all other unexpected server-side errors (500-level)
-            print(f"Unexpected server error: {e}")
+            tb = traceback.format_exc()
+            logging.error(f"Unexpected server error: {e}\nTraceback:\n{tb}")
             raise HTTPException(status_code=500, detail="An unexpected server error occurred.")
     return wrapper
 
@@ -260,7 +267,7 @@ def get_assignment_ids_for_category(data_dict: dict, category: str) -> list:
     """
 
     if category not in data_dict:
-        print(f"Category: {category} not found")
+        logging.info(f"Category: {category} not found")
         return
     
     category_data = data_dict[category]
@@ -281,7 +288,7 @@ def get_ids_for_all_assignments(data_dict: dict) -> list:
         [["Lecture 1: Quiz", "#######"], ["Lab 4: Conceptual", "########"], ..... , ["Midterm Fractal", "#######"]]
     """
     all_assignment_ids = []
-    
+
     for category in data_dict.keys():
         ids_for_category = get_assignment_ids_for_category(data_dict, category)
         if isinstance(ids_for_category, list):  # Make sure it's a list of IDs

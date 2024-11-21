@@ -17,24 +17,27 @@ client = gspread.authorize(credentials)
 app = FastAPI()
 GRADESCOPE_CLIENT = GradescopeClient()
 # Load JSON variables
-config_path = os.path.join(os.path.dirname(__file__), "config.json")
+config_path = os.path.join(os.path.dirname(__file__), "config/cs10_fall_2024.json")
 with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
 # Hardcoded (for now) GradeScope CS10 Fall 2024 COURSE ID
-CS_10_GS_COURSE_ID = str(config.get("CS_10_COURSE_ID"))
+CS_10_GS_COURSE_ID = str(config.get("CS_10_GS_COURSE_ID"))
 # Hardcoded (for now) PL CS10 Summer 2024 COURSE ID
 CS_10_PL_COURSE_ID = str(config.get("CS_10_PL_COURSE_ID"))
 PL_API_TOKEN = os.getenv("PL_API_TOKEN")
 PL_SERVER = "https://us.prairielearn.com/pl/api/v1"
 
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the GradeSync API"}
 
+
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: str = None):
     return {"item_id": item_id, "query": q}
+
 
 @app.get("/getGrades")
 @handle_errors
@@ -110,23 +113,13 @@ def get_assignment_info(class_id: str = None):
     # if class_id is None, use CS10's CS_10_COURSE_ID
     class_id = class_id or CS_10_GS_COURSE_ID
 
-    if class_id == CS_10_GS_COURSE_ID:
+    if class_id == 902165: #CS10_FALL_2024_DUMMY class
         # Load assignment data from local JSON file
-        try:
-            local_json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")
-            with open(local_json_path, "r") as f:
-                assignments = json.load(f)
-            return assignments
-        except FileNotFoundError:
-            return JSONResponse(
-                content={"error": "File Not Found", "message": "Local cs10_assignments JSON file not found."},
-                status_code=500
-            )
-        except json.JSONDecodeError:
-            return JSONResponse(
-                content={"error": "Invalid JSON", "message": "Failed to parse the local assignments JSON file."},
-                status_code=500
-            )
+        # This JSON is for the CS10_FALL_2024 dummy Gradescope test class
+        local_json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")
+        with open(local_json_path, "r") as f:
+            assignments = json.load(f)
+        return assignments
     if not GRADESCOPE_CLIENT.logged_in:
         return JSONResponse(
             content={"error": "Unauthorized access", "message": "User is not logged into Gradescope"},
@@ -259,7 +252,7 @@ def fetchAllGrades(class_id: str = None):
     }
     """
     class_id = class_id or CS_10_GS_COURSE_ID
-    assignment_info = get_assignment_info()
+    assignment_info = get_assignment_info(class_id)
     all_ids = get_ids_for_all_assignments(assignment_info)
 
     all_grades = {}
@@ -285,7 +278,9 @@ async def write_to_sheet(request: WriteRequest):
             content={"error": "Failed to write to cell", "message": str(e)},
             status_code=500
         )
+    
 
+@handle_errors
 @app.get("/getPLGrades")
 def retrieve_gradebook():
     """
@@ -301,12 +296,8 @@ def retrieve_gradebook():
     Raises:
         Exception: Catches any unexpected errors and includes a descriptive message.
     """
-    try:
-        course_instance_path = f'/course_instances/{CS_10_PL_COURSE_ID}'
-        headers = {'Private-Token': PL_API_TOKEN}
-        url = PL_SERVER + f"/course_instances/{CS_10_PL_COURSE_ID}/gradebook"
-        r = backoff(requests.get, args = [url], kwargs = {'headers': headers}, max_tries = 3,  max_delay = 30, strategy = strategies.Exponential)
-        data = r.json()
-        return data
-    except Exception as e:
-        print(e)
+    headers = {'Private-Token': PL_API_TOKEN}
+    url = PL_SERVER + f"/course_instances/{CS_10_PL_COURSE_ID}/gradebook"
+    r = backoff(requests.get, args = [url], kwargs = {'headers': headers}, max_tries = 3,  max_delay = 30, strategy = strategies.Exponential)
+    data = r.json()
+    return data
