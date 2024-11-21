@@ -1,0 +1,7 @@
+__pycache__/
+# environment variables
+api/.env
+api/.pytest_cache
+api/.coverage
+.coverage
+.vscode/
