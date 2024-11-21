@@ -7,7 +7,6 @@ from google.oauth2.service_account import Credentials
 from backoff_utils import strategies
 from backoff_utils import backoff
 import requests
-print("api/app.py has been imported")
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
