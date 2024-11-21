@@ -288,9 +288,25 @@ async def write_to_sheet(request: WriteRequest):
 
 @app.get("/getPLGrades")
 def retrieve_gradebook():
-    course_instance_path = f'/course_instances/{CS_10_PL_COURSE_ID}'
-    headers = {'Private-Token': PL_API_TOKEN}
-    url = PL_SERVER + f"/course_instances/{CS_10_PL_COURSE_ID}/gradebook"
-    r = backoff(requests.get, args = [url], kwargs = {'headers': headers}, max_tries = 3,  max_delay = 30, strategy = strategies.Exponential)
-    data = r.json()
-    return data
+    """
+    Fetches student grades from PrairieLearn as JSON. 
+
+    Note: You will need to generate a personal token in PrairieLearn found under the settings, and
+        add it the .env file.
+    Parameters: None
+    Returns:
+        dict: A dictionary containing student grades for every assessment in PL 
+                if the request is successful. If an error occurs, a dictionary
+                with an error message is returned.
+    Raises:
+        Exception: Catches any unexpected errors and includes a descriptive message.
+    """
+    try:
+        course_instance_path = f'/course_instances/{CS_10_PL_COURSE_ID}'
+        headers = {'Private-Token': PL_API_TOKEN}
+        url = PL_SERVER + f"/course_instances/{CS_10_PL_COURSE_ID}/gradebook"
+        r = backoff(requests.get, args = [url], kwargs = {'headers': headers}, max_tries = 3,  max_delay = 30, strategy = strategies.Exponential)
+        data = r.json()
+        return data
+    except Exception as e:
+        print(e)
