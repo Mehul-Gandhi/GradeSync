@@ -33,3 +33,7 @@ def test_discussion():
     assert response.status_code == 200
     assert "assignment_id" in response.json()  # Verifies if assignment_id is in response
     
+def test_PL():
+    response = client.get("/getPLGrades")
+    #print(response.content)
+    assert response.status_code == 200
