@@ -9,3 +9,5 @@ google-auth
 pydantic==2.9.2
 coverage
 pytest-cov
+backoff_utils
+requests
