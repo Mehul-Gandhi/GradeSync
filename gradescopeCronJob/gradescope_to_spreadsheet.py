@@ -17,11 +17,10 @@ from dotenv import load_dotenv
 import backoff
 import csv
 import pandas as pd
-
-
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
+
 import logging
 import sys
 
@@ -63,7 +62,7 @@ NUM_LECTURES = config["NUM_LECTURES"]
 # Used for labs with 4 parts (very uncommon)
 SPECIAL_CASE_LABS = config["SPECIAL_CASE_LABS"]
 
-# The ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
+# These constants are depracated. The following explanation is for what their purpose was. ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 ASSIGNMENT_NAME = (len(sys.argv) > 2) and sys.argv[2]
 
@@ -76,7 +75,7 @@ subsheet_titles_to_ids = None
 # Tracking the number of_attempts to_update a sheet.
 number_of_retries_needed_to_update_sheet = 0
 
-requests = []
+request_list = []
 
 def deprecated(func):
     @functools.wraps(func)
@@ -148,7 +147,7 @@ def backoff_handler(backoff_response=None):
     pass
 
 def store_request(request):
-    requests.append(request)
+    request_list.append(request)
 
 @backoff.on_exception(
     backoff.expo,
@@ -174,6 +173,12 @@ def assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, 
             }
     }
     store_request(push_grade_data_rest_request)
+
+def retrieve_preexisting_columns(assignment_type, sheet_api_instance):
+    range = f'{assignment_type}!1:1'
+    result = sheet_api_instance.values().get(spreadsheetId=SPREADSHEET_ID, range=range).execute()
+    first_row = result.get('values', [])
+    return first_row[0][3:]
 
 
 def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMENT_ID):
@@ -221,9 +226,9 @@ def get_assignment_id_to_names(gradescope_client):
     return assignment_to_names
 
 def make_batch_request(sheet_api_instance):
-    global requests
+    global request_list
     rest_batch_request = {
-        "requests": requests
+        "requests": request_list
     }
     batch_request = sheet_api_instance.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=rest_batch_request)
     logger.info(f"Issuing batch request")
@@ -234,8 +239,9 @@ def push_all_grade_data_to_sheets():
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
     sheet_api_instance = create_sheet_api_instance()
+
     get_sub_sheet_titles_to_ids(sheet_api_instance) #
-    populate_spreadsheet_gradebook(assignment_id_to_names)
+    populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance)
     make_batch_request(sheet_api_instance) #
 
     # An assignment is marked as current if there are >3 submissions and if the commented code in the for loop below is removed
@@ -246,16 +252,31 @@ def push_all_grade_data_to_sheets():
     make_batch_request(sheet_api_instance)
 
 
-def populate_spreadsheet_gradebook(assignment_id_to_names):
+def populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance):
     is_not_optional =  lambda assignment: not "optional" in assignment.lower()
     assignment_names = set(filter(is_not_optional, assignment_id_to_names.values()))
     # The below code is used to filter assignments by category when populating the instructor dashboard
     filter_by_assignment_category = lambda category: lambda assignment: category in assignment.lower()
+
+    preexisting_lab_columns = retrieve_preexisting_columns("Labs", sheet_api_instance)
     labs = set(filter(filter_by_assignment_category("lab"), assignment_names))
+    new_labs = labs - set(preexisting_lab_columns)
+
+    preexisting_discussion_columns = retrieve_preexisting_columns("Discussions", sheet_api_instance)
     discussions = set(filter(filter_by_assignment_category("discussion"), assignment_names))
+    new_discussions = discussions - set(preexisting_discussion_columns)
+
+    preexisting_project_columns = retrieve_preexisting_columns("Projects", sheet_api_instance)
     projects = set(filter(filter_by_assignment_category("project"), assignment_names))
+    new_projects = projects - set(preexisting_project_columns)
+
+    preexisting_lecture_quiz_columns = retrieve_preexisting_columns("Lecture Quizzes", sheet_api_instance)
     lecture_quizzes = set(filter(filter_by_assignment_category("lecture"), assignment_names))
+    new_lecture_quizzes = lecture_quizzes - set(preexisting_lecture_quiz_columns)
+
+    preexisting_midterm_columns = retrieve_preexisting_columns("Midterms", sheet_api_instance)
     midterms = set(filter(filter_by_assignment_category("midterm"), assignment_names))
+    new_midterms = midterms - set(preexisting_midterm_columns)
 
     def extract_number_from_assignment_title(assignment):
         numbers_present = re.findall("\d+", assignment)
@@ -263,11 +284,12 @@ def populate_spreadsheet_gradebook(assignment_id_to_names):
             return int(numbers_present[0])
         return 0
 
-    sorted_labs = sorted(labs, key=extract_number_from_assignment_title)
-    sorted_discussions = sorted(discussions, key=extract_number_from_assignment_title)
-    sorted_projects = sorted(projects, key=extract_number_from_assignment_title)
-    sorted_lecture_quizzes = sorted(lecture_quizzes, key=extract_number_from_assignment_title)
-    sorted_midterms = sorted(midterms, key=extract_number_from_assignment_title)
+
+    sorted_new_labs = sorted(new_labs, key=extract_number_from_assignment_title)
+    sorted_new_discussions = sorted(new_discussions, key=extract_number_from_assignment_title)
+    sorted_new_projects = sorted(new_projects, key=extract_number_from_assignment_title)
+    sorted_new_lecture_quizzes = sorted(new_lecture_quizzes, key=extract_number_from_assignment_title)
+    sorted_new_midterms = sorted(new_midterms, key=extract_number_from_assignment_title)
 
     formula_list = [GRADE_RETRIEVAL_SPREADSHEET_FORMULA] * NUMBER_OF_STUDENTS
     discussion_formula_list = [DISCUSSION_COMPLETION_INDICATOR_FORMULA]
@@ -283,13 +305,22 @@ def populate_spreadsheet_gradebook(assignment_id_to_names):
         output.close()
         assemble_rest_request_for_assignment(grades_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[category], rowIndex=0, columnIndex=3)
 
+    sorted_labs = preexisting_lab_columns + sorted_new_labs
+    sorted_discussions = preexisting_discussion_columns + sorted_new_discussions
+    sorted_projects = preexisting_project_columns + sorted_new_projects
+    sorted_lecture_quizzes = preexisting_lecture_quiz_columns + sorted_new_lecture_quizzes
+    sorted_midterms = preexisting_midterm_columns + sorted_new_midterms
+
     produce_gradebook_for_category(sorted_labs, "Labs", formula_list)
     produce_gradebook_for_category(sorted_discussions, "Discussions", discussion_formula_list)
     produce_gradebook_for_category(sorted_projects, "Projects", formula_list)
     produce_gradebook_for_category(sorted_lecture_quizzes, "Lecture Quizzes", formula_list)
     produce_gradebook_for_category(sorted_midterms, "Midterms", formula_list)
 
-def create_gradebook_column_request(assignments, type):
+"""
+Creates the request that adds assignment columns to the gradebook for the corresponding type of assignment.
+"""
+def create_request_to_add_assignment_column_titles(assignments, type):
     global subsheet_titles_to_ids
     output = io.StringIO()
     writer = csv.writer(output)
@@ -297,7 +328,6 @@ def create_gradebook_column_request(assignments, type):
     assignment_list_as_csv = output.getvalue()
     output.close()
     assemble_rest_request_for_assignment(assignment_list_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[type], rowIndex=0, columnIndex=3)
-
 
 """
 This script retrieves data from a Gradescope course instance and writes the data to Google Sheets. If there are no arguments passed into this script, this script will do the following:
@@ -320,7 +350,10 @@ def main():
     logger.info(f"Finished in {round(end_time - start_time, 2)} seconds")
 
 
-# Need to import pandas if you would like to use this function.
+"""
+ Below functon is no longer in use.
+"""
+@deprecated
 def populate_instructor_dashboard_old(all_lab_ids, assignment_id_to_currency_status, assignment_id_to_names,
                                       assignment_names_to_ids, dashboard_dict, dashboard_sheet_id, discussions,
                                       extract_number_from_lab_title, id, lecture_quizzes, paired_lab_ids,
