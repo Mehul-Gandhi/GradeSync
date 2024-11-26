@@ -75,7 +75,14 @@ PYTURIS_ASSIGNMENT_ID = str(config["PYTURIS_ASSIGNMENT_ID"])
 # These constants are depracated. The following explanation is for what their purpose was. ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
 ASSIGNMENT_NAME = (len(sys.argv) > 2) and sys.argv[2]
+"""
+Explanation of GRADE_RETRIEVAL_SPREADSHEET_FORMULA:
+[Grade data for assignment] =XLOOKUP([Search key (student id)], [Range of sid in assignment subsheet], [Range of grades in assignment subsheet])
+[Range of sid in assignment subsheet as a string] =INDIRECT( [Name of assignment subsheet] & [Column range of sids in assignment subsheet])
+[Name of assignment subsheet, as retrieved from first cell in column] =INDIRECT(ADDRESS(1, COLUMN(), 4))
 
+DISCUSSION_COMPLETION_INDICATOR_FORMULA uses similar logic, but includes a condition that checks whether a discussion has been submitted or is missing. A submitted discussion is awarded full credit; discussions are not manually graded.
+"""
 GRADE_RETRIEVAL_SPREADSHEET_FORMULA = '=XLOOKUP(C:C, INDIRECT( INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!C:C"), INDIRECT(INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!F:F"))'
 DISCUSSION_COMPLETION_INDICATOR_FORMULA = '=ARRAYFORMULA(IF(INDIRECT( INDIRECT(ADDRESS(1, COLUMN(), 4)) & "!H:H")="Missing", 0,  IF(A:A<>"", 1, "")))'
 
