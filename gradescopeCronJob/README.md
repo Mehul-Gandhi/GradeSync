@@ -48,7 +48,9 @@
 1. **Create a new config file**: Navigate into the folder `gradescopeCronJob/config/`, and create a new config file with the naming scheme `{class}_{semester, year}.json`. For example, the file could be named `cs10_fall2024.json`. 
 
 2. **Define the necessary constraints**:
-   - **COURSE_ID**: The course ID is the final component of the URL on the Gradescope course homepage: `https://www.gradescope.com/courses/[COURSE_ID]`
+   - **GRADESCOPE_COURSE_ID**: The course ID is the final component of the URL on the Gradescope course homepage: `https://www.gradescope.com/courses/[GRADESCOPE_COURSE_ID]`
+   
+   - **PL_COURSE_ID**: The course ID is the component of the URL following course_instance. For example: `https://us.prairielearn.com/pl/course_instance/[PL_COURSE_ID]/instructor/instance_admin/access`
 
    - **SCOPES**: This should not be modified by the user. Use `"https://www.googleapis.com/auth/spreadsheets"` to allow write access.
 
@@ -66,16 +68,14 @@
 
    - **NUM_LECTURE_DROPS**: The number of drops included in the lecture-quiz grade calculation.
 
+   - **NUM_LECTURE_DROPS**: The number of drops included in the lecture-quiz grade calculation.
+
 ---
 
 # 4. Set up the spreadsheet
-1. **Create subsheets with each of the following names**
-   - Labs
-   - Discussions
-   - Projects
-   - Lecture Quizzes
-   - Midterms
-2.  **Paste the Roster in each of the above sheets, with the first three columns being First Name, Last Name, and Student ID**
+- Make a copy of the following template sheet: 
+
+https://docs.google.com/spreadsheets/d/1V77ApZbfwLXGGorUaOMyWrSyydz_X1FCJb7MLIgLCSw/edit?gid=0#gid=0
 
 # 4. Docker Container
 

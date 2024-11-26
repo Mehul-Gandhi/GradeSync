@@ -17,9 +17,14 @@ from dotenv import load_dotenv
 import backoff
 import csv
 import pandas as pd
+import backoff_utils
+import requests
+
 load_dotenv()
 GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
 GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
+PL_API_TOKEN = os.getenv("PL_API_TOKEN")
+PL_SERVER = "https://us.prairielearn.com/pl/api/v1"
 
 import logging
 import sys
@@ -44,7 +49,8 @@ with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
 # IDs to link files
-COURSE_ID = config["COURSE_ID"]
+GRADESCOPE_COURSE_ID = config["GRADESCOPE_COURSE_ID"]
+PL_COURSE_ID = str(config["PL_COURSE_ID"])
 SCOPES = config["SCOPES"]
 SPREADSHEET_ID = config["SPREADSHEET_ID"]
 
@@ -61,6 +67,10 @@ NUM_LECTURES = config["NUM_LECTURES"]
 
 # Used for labs with 4 parts (very uncommon)
 SPECIAL_CASE_LABS = config["SPECIAL_CASE_LABS"]
+
+INCLUDE_PYTURIS = config["INCLUDE_PYTURIS"]
+
+PYTURIS_ASSIGNMENT_ID = str(config["PYTURIS_ASSIGNMENT_ID"])
 
 # These constants are depracated. The following explanation is for what their purpose was. ASSIGNMENT_ID constant is for users who wish to generate a sub-sheet (not update the dashboard) for one assignment, passing it as a parameter.
 ASSIGNMENT_ID = (len(sys.argv) > 1) and sys.argv[1]
@@ -173,6 +183,7 @@ def assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, 
             }
     }
     store_request(push_grade_data_rest_request)
+    return push_grade_data_rest_request
 
 def retrieve_preexisting_columns(assignment_type, sheet_api_instance):
     range = f'{assignment_type}!1:1'
@@ -182,7 +193,7 @@ def retrieve_preexisting_columns(assignment_type, sheet_api_instance):
 
 
 def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMENT_ID):
-    assignment_scores = str(gradescope_client.download_scores(COURSE_ID, assignment_id)).replace("\\n", "\n")
+    assignment_scores = str(gradescope_client.download_scores(GRADESCOPE_COURSE_ID, assignment_id)).replace("\\n", "\n")
     return assignment_scores
 
 
@@ -215,7 +226,7 @@ This method returns a dictionary mapping assignment IDs to the names (titles) of
 
 def get_assignment_id_to_names(gradescope_client):
     # The response cannot be parsed as a json as is.
-    course_info_response = str(get_assignment_info(gradescope_client, COURSE_ID)).replace("\\", "").replace("\\u0026", "&")
+    course_info_response = str(get_assignment_info(gradescope_client, GRADESCOPE_COURSE_ID)).replace("\\", "").replace("\\u0026", "&")
     pattern = '{"id":[0-9]+,"title":"[^}"]+?"}'
     info_for_all_assignments = re.findall(pattern, course_info_response)
     assignment_to_names = {}
@@ -239,16 +250,16 @@ def push_all_grade_data_to_sheets():
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
     sheet_api_instance = create_sheet_api_instance()
+    get_sub_sheet_titles_to_ids(sheet_api_instance)
+    push_pl_assignment_csv_to_gradebook(PYTURIS_ASSIGNMENT_ID, "Pyturis")
 
-    get_sub_sheet_titles_to_ids(sheet_api_instance) #
     populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance)
     make_batch_request(sheet_api_instance) #
 
-    # An assignment is marked as current if there are >3 submissions and if the commented code in the for loop below is removed
-    assignment_id_to_currency_status = {}
     for id in assignment_id_to_names:
         prepare_request_for_one_assignment(sheet_api_instance, gradescope_client=gradescope_client,
                                                                assignment_name=assignment_id_to_names[id], assignment_id=id)
+
     make_batch_request(sheet_api_instance)
 
 
@@ -330,6 +341,44 @@ def create_request_to_add_assignment_column_titles(assignments, type):
     assemble_rest_request_for_assignment(assignment_list_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[type], rowIndex=0, columnIndex=3)
 
 """
+This function is here so that Pyturis grades can be added to the sheet, per Dan's request. Pyturis functionality is not implemented yet.
+
+Fetches student grades for one assignment from PrairieLearn as JSON.
+
+Note: You will need to generate a personal token in PrairieLearn found under the settings, andadd it the .env file.
+Parameters: None
+Returns:
+dict: A dictionary containing student grades for one assessment in PL if the request is successful. If an error occurs, a dictionary with an error message is returned.
+Raises:
+    Exception: Catches any unexpected errors and includes a descriptive message.
+"""
+def retrieve_PL_scores_for_one_assignment(assignment_id):
+    try:
+        headers = {'Private-Token': PL_API_TOKEN}
+        url = PL_SERVER + f"/course_instances/{PL_COURSE_ID}/assessments/{assignment_id}/assessment_instances"
+        r = backoff_utils.backoff(requests.get, args = [url], kwargs = {'headers': headers}, max_tries = 3,  max_delay = 30, strategy = backoff_utils.strategies.Exponential)
+        data = r.json()
+        return data
+    except Exception as e:
+        print(e)
+
+def make_csv_for_one_assignment(json_assignment_scores):
+    output = io.StringIO()
+    first_columns = ["user_name", "user_id", "points", "max_points", "score_perc", "highest_score"]
+    additional_columns = json_assignment_scores[0].keys() - set(first_columns)
+    ordered_fields = first_columns + list(additional_columns)
+    writer = csv.DictWriter(output, fieldnames=ordered_fields)
+    writer.writeheader()
+    writer.writerows(json_assignment_scores)
+    assignment_scores_as_csv = output.getvalue()
+    output.close()
+    return assignment_scores_as_csv
+
+def push_pl_assignment_csv_to_gradebook(assignment_id, subsheet_name):
+    assignment_scores_as_csv = make_csv_for_one_assignment(retrieve_PL_scores_for_one_assignment(assignment_id))
+    assemble_rest_request_for_assignment(assignment_scores_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[subsheet_name])
+
+"""
 This script retrieves data from a Gradescope course instance and writes the data to Google Sheets. If there are no arguments passed into this script, this script will do the following:
 1. Retrieves a list of assignments from Gradescope
 2. Determines which assignments already have sub sheets in the configured Google spreadsheet
@@ -348,7 +397,6 @@ def main():
     push_all_grade_data_to_sheets()
     end_time = time.time()
     logger.info(f"Finished in {round(end_time - start_time, 2)} seconds")
-
 
 """
  Below functon is no longer in use.
