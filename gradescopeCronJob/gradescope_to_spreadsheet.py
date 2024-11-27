@@ -110,10 +110,12 @@ credentials_dict = json.loads(credentials_json)
 credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
 client = gspread.authorize(credentials)
 
-"""
-Creates a sheet and adds the request that will populate the sheet to request_list
-"""
+
 def create_sheet_and__request_to_populate_it(sheet_api_instance, assignment_scores, assignment_name = ASSIGNMENT_NAME):
+    """
+    Creates a sheet and adds the request that will populate the sheet to request_list.
+    TODO: Add parameters and return value in this docstring.
+    """
     global number_of_retries_needed_to_update_sheet
     try:
         sub_sheet_titles_to_ids = get_sub_sheet_titles_to_ids(sheet_api_instance)
@@ -143,18 +145,21 @@ def create_sheet_and__request_to_populate_it(sheet_api_instance, assignment_scor
     except Exception as err:
         logger.error(f"An unknown error has occurred: {err}")
 
-"""
-Creates a sheet api instance
-"""
+
 def create_sheet_api_instance():
+    """
+    Creates a sheet api instance
+    """
     service = build("sheets", "v4", credentials=credentials)
     sheet_api_instance = service.spreadsheets()
     return sheet_api_instance
 
-"""
-If subsheet_titles_to_ids, a dict mapping subsheet titles to sheet ids has already been created, return it. If not, retrieve that info from Google sheets.
-"""
+
 def get_sub_sheet_titles_to_ids(sheet_api_instance):
+    """
+    If subsheet_titles_to_ids, a dict mapping subsheet titles to sheet ids has already been created,
+    return it. If not, retrieve that info from Google sheets.
+    """
     global subsheet_titles_to_ids
     if subsheet_titles_to_ids:
         return subsheet_titles_to_ids
@@ -165,27 +170,33 @@ def get_sub_sheet_titles_to_ids(sheet_api_instance):
                                sheets['sheets']}
     return subsheet_titles_to_ids
 
-"""
-A 429 error is the error returned when the rate limit is exceeded. This function determines whether we have encountered a rate limit error or an error we should be concerned about.
-"""
+
 def is_429_error(exception):
+    """
+    A 429 error is the error returned when the rate limit is exceeded. 
+    This function determines whether we have encountered a rate limit error or 
+    an error we should be concerned about.
+    """
     return isinstance(exception, HttpError) and exception.resp.status == 429
-"""
-Count the number of retries needed to execute the request.
-"""
+
 def backoff_handler(backoff_response=None):
+    """
+    Count the number of retries needed to execute the request.
+    TODO: Add parameters and return value in this docstring.
+    """
     global number_of_retries_needed_to_update_sheet
     number_of_retries_needed_to_update_sheet += 1
     pass
-"""
-Stores a request in a running list, request_list, to be executed in a batch request.
-"""
+
+
 def store_request(request):
+    """
+    Stores a request in a running list, request_list, to be executed in a batch request.
+    TODO: Add parameters and return value in this docstring.
+    """
     request_list.append(request)
 
-"""
-Makes one request (with backoff logic)
-"""
+
 @backoff.on_exception(
     backoff.expo,
     Exception,
@@ -194,12 +205,19 @@ Makes one request (with backoff logic)
     giveup=lambda e: not is_429_error(e)
 )
 def make_request(request):
+    """
+    Makes one request (with backoff logic)
+    TODO: Add parameters and return value in this docstring.
+    """
     return request.execute()
 
-"""
-Assembles a request to populate one sheet with data.
-"""
+
 def assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, sheet_id, rowIndex = 0, columnIndex=0):
+    """
+    Assembles a request to populate one sheet with data.
+    TODO: Add parameters and return value in this docstring.
+    TODO: Sheet API instance variable is not being used in this function, so remove it from the parameters.
+    """
     push_grade_data_rest_request = {
             'pasteData': {
                     "coordinate": {
@@ -214,34 +232,41 @@ def assemble_rest_request_for_assignment(assignment_scores, sheet_api_instance, 
     }
     store_request(push_grade_data_rest_request)
     return push_grade_data_rest_request
-"""
-Retrieves the columns in a given subsheet
-"""
+
 def retrieve_preexisting_columns(assignment_type, sheet_api_instance):
+    """
+    Retrieves the columns in a given subsheet.
+    TODO: Add parameters and return value in this docstring.
+    """
     range = f'{assignment_type}!1:1'
     result = sheet_api_instance.values().get(spreadsheetId=SPREADSHEET_ID, range=range).execute()
     first_row = result.get('values', [])
     return first_row[0][3:]
 
-"""
-Retrieves grades for one GradeScope assignment in csv form.
-"""
+
 def retrieve_grades_from_gradescope(gradescope_client, assignment_id = ASSIGNMENT_ID):
+    """
+    Retrieves grades for one GradeScope assignment in csv form.
+    TODO: Add parameters and return value in this docstring.
+    """
     assignment_scores = str(gradescope_client.download_scores(GRADESCOPE_COURSE_ID, assignment_id)).replace("\\n", "\n")
     return assignment_scores
 
-"""
-Initializes GradeScope api client.
-"""
+
 def initialize_gs_client():
+    """
+    Initializes GradeScope API client.
+    """
     gradescope_client = GradescopeClient.GradescopeClient()
     gradescope_client.log_in(GRADESCOPE_EMAIL, GRADESCOPE_PASSWORD)
     return gradescope_client
 
-"""
-Retrieves all information on GS's assignments page, which is used to determine the mapping of assignment name to assignment id.
-"""
+
 def get_assignment_info(gs_instance, class_id: str) -> bytes:
+    """
+    Retrieves all information on GS's assignments page, which is used to determine the mapping of assignment name to assignment id.
+    TODO: Add parameters and return value in this docstring.
+    """
     if not gs_instance.logged_in:
         logger.error("You must be logged in to download grades!")
         return False
@@ -251,20 +276,23 @@ def get_assignment_info(gs_instance, class_id: str) -> bytes:
         return False
     return res.content
 
-"""
-Encapsulates the entire process of creating a request for one assignment, from data retrieval from GradeScope to the sheets request.
-"""
+
 def prepare_request_for_one_assignment(sheet_api_instance, gradescope_client, assignment_name = ASSIGNMENT_NAME,
                                        assignment_id=ASSIGNMENT_ID):
+    """
+    Encapsulates the entire process of creating a request for one assignment, from data retrieval from GradeScope to the sheets request.
+    TODO: Add parameters and return value in this docstring.
+    """
     assignment_scores = retrieve_grades_from_gradescope(gradescope_client = gradescope_client, assignment_id = assignment_id)
     create_sheet_and__request_to_populate_it(sheet_api_instance, assignment_scores, assignment_name)
     return assignment_scores
 
-"""
-This method returns a dictionary mapping assignment IDs to the names (titles) of GradeScope assignments
-"""
+
 
 def get_assignment_id_to_names(gradescope_client):
+    """
+    This method returns a dictionary mapping assignment IDs to the names (titles) of GradeScope assignments
+    """
     # The response cannot be parsed as a json as is.
     course_info_response = str(get_assignment_info(gradescope_client, GRADESCOPE_COURSE_ID)).replace("\\", "").replace("\\u0026", "&")
     pattern = '{"id":[0-9]+,"title":"[^}"]+?"}'
@@ -276,10 +304,11 @@ def get_assignment_id_to_names(gradescope_client):
         assignment_to_names[str(assignment_as_json["id"])] = assignment_as_json["title"]
     return assignment_to_names
 
-"""
-Executes a batch request including all requests in our running list: request_list
-"""
+
 def make_batch_request(sheet_api_instance):
+    """
+    Executes a batch request including all requests in our running list: request_list
+    """
     global request_list
     rest_batch_request = {
         "requests": request_list
@@ -289,10 +318,11 @@ def make_batch_request(sheet_api_instance):
     make_request(batch_request)
     logger.info(f"Completing batch request")
 
-"""
-Encapsulates the entire process of retrieving grades from GradeScope and Pyturis from PL and pushing to sheets.
-"""
+
 def push_all_grade_data_to_sheets():
+    """
+    Encapsulates the entire process of retrieving grades from GradeScope and Pyturis from PL and pushing to sheets.
+    """
     gradescope_client = initialize_gs_client()
     assignment_id_to_names = get_assignment_id_to_names(gradescope_client)
     sheet_api_instance = create_sheet_api_instance()
@@ -308,10 +338,12 @@ def push_all_grade_data_to_sheets():
 
     make_batch_request(sheet_api_instance)
 
-"""
-Creates the gradebook, ensuring existing columns remain in order, and encapsulates the process of retrieving grades from GradeScope.
-"""
+
 def populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance):
+    """
+    Creates the gradebook, ensuring existing columns remain in order, and encapsulates the process of retrieving grades from GradeScope.
+    TODO: Add parameters and return value in this docstring.
+    """
     is_not_optional =  lambda assignment: not "optional" in assignment.lower()
     assignment_names = set(filter(is_not_optional, assignment_id_to_names.values()))
     # The below code is used to filter assignments by category when populating the instructor dashboard
@@ -337,10 +369,11 @@ def populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance):
     midterms = set(filter(filter_by_assignment_category("midterm"), assignment_names))
     new_midterms = midterms - set(preexisting_midterm_columns)
 
-    """
-    Extracts a number from an assignment title
-    """
+
     def extract_number_from_assignment_title(assignment):
+        """
+        Extracts a number from an assignment title
+        """
         numbers_present = re.findall("\d+", assignment)
         if numbers_present:
             return int(numbers_present[0])
@@ -356,10 +389,11 @@ def populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance):
     formula_list = [GRADE_RETRIEVAL_SPREADSHEET_FORMULA] * NUMBER_OF_STUDENTS
     discussion_formula_list = [DISCUSSION_COMPLETION_INDICATOR_FORMULA]
 
-    """
-    Produces a gradebook for a given assignment category by creating (and csv-ifying) a dataframe of column names and spreadsheet formulas.
-    """
     def produce_gradebook_for_category(sorted_assignment_list, category, formula_list):
+        """
+        Produces a gradebook for a given assignment category by creating (and csv-ifying) a dataframe of column names and spreadsheet formulas.
+        TODO: Add parameters and return value in this docstring.
+        """
         if not sorted_assignment_list:
             return
         global subsheet_titles_to_ids
@@ -383,10 +417,12 @@ def populate_spreadsheet_gradebook(assignment_id_to_names, sheet_api_instance):
     produce_gradebook_for_category(sorted_lecture_quizzes, "Lecture Quizzes", formula_list)
     produce_gradebook_for_category(sorted_midterms, "Midterms", formula_list)
 
-"""
-Creates the request that adds assignment columns to the gradebook for the corresponding type of assignment.
-"""
+
 def create_request_to_add_assignment_column_titles(assignments, type):
+    """
+    Creates the request that adds assignment columns to the gradebook for the corresponding type of assignment.
+    TODO: Add parameters and return value in this docstring.
+    """
     global subsheet_titles_to_ids
     output = io.StringIO()
     writer = csv.writer(output)
@@ -395,19 +431,20 @@ def create_request_to_add_assignment_column_titles(assignments, type):
     output.close()
     assemble_rest_request_for_assignment(assignment_list_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[type], rowIndex=0, columnIndex=3)
 
-"""
-This function is here so that Pyturis grades can be added to the sheet, per Dan's request. Pyturis functionality is not implemented yet.
 
-Fetches student grades for one assignment from PrairieLearn as JSON.
-
-Note: You will need to generate a personal token in PrairieLearn found under the settings, andadd it the .env file.
-Parameters: None
-Returns:
-dict: A dictionary containing student grades for one assessment in PL if the request is successful. If an error occurs, a dictionary with an error message is returned.
-Raises:
-    Exception: Catches any unexpected errors and includes a descriptive message.
-"""
 def retrieve_PL_scores_for_one_assignment(assignment_id):
+    """
+    This function is here so that Pyturis grades can be added to the sheet, per Dan's request. Pyturis functionality is not implemented yet.
+
+    Fetches student grades for one assignment from PrairieLearn as JSON.
+
+    Note: You will need to generate a personal token in PrairieLearn found under the settings, andadd it the .env file.
+    Parameters: assignment_id: assignment_id for the PraireLearn Pyturis assignment
+    Returns:
+    dict: A dictionary containing student grades for one assessment in PL if the request is successful. If an error occurs, a dictionary with an error message is returned.
+    Raises:
+        Exception: Catches any unexpected errors and includes a descriptive message.
+    """
     try:
         headers = {'Private-Token': PL_API_TOKEN}
         url = PL_SERVER + f"/course_instances/{PL_COURSE_ID}/assessments/{assignment_id}/assessment_instances"
@@ -417,10 +454,12 @@ def retrieve_PL_scores_for_one_assignment(assignment_id):
     except Exception as e:
         print(e)
 
-"""
-Converts PL json scores from one assignment to csv.
-"""
+
 def make_csv_for_one_PL_assignment(json_assignment_scores):
+    """
+    Converts PL json scores from one assignment to csv.
+    TODO: Add parameters and return value in this docstring.
+    """
     output = io.StringIO()
     first_columns = ["user_name", "user_id", "points", "max_points", "score_perc", "highest_score"]
     additional_columns = json_assignment_scores[0].keys() - set(first_columns)
@@ -432,10 +471,12 @@ def make_csv_for_one_PL_assignment(json_assignment_scores):
     output.close()
     return assignment_scores_as_csv
 
-"""
-Pushes the csv scores for a PL assignment to GradeScope
-"""
+
 def push_pl_assignment_csv_to_gradebook(assignment_id, subsheet_name):
+    """
+    Pushes the csv scores for a PL assignment to GradeScope
+    TODO: Add parameters and return value in this docstring.
+    """
     assignment_scores_as_csv = make_csv_for_one_PL_assignment(retrieve_PL_scores_for_one_assignment(assignment_id))
     assemble_rest_request_for_assignment(assignment_scores_as_csv, sheet_api_instance=None, sheet_id=subsheet_titles_to_ids[subsheet_name])
 
@@ -444,13 +485,13 @@ This script retrieves data from a Gradescope course instance and writes the data
 1. Retrieves a list of assignments from Gradescope
 2. Determines which assignments already have sub sheets in the configured Google spreadsheet
 3. For every assignment:
-    Query students’ grades from Gradescope
+    Query students' grades from Gradescope
     If there is no corresponding subsheet for the assignment:
         Make a subsheet
     Create a write request for the subsheet, and store the request in a list
 4. Execute all write requests in the list
-NOTE: This script invokes only one API call to Google Sheets.
-TODO: Create a docstring explaining how the script runs if there are arguments passed in when running this script.
+NOTE: This script invokes only X API calls to Google Sheets.
+TODO: Document the number of Google Sheets API calls made in this script.
 TODO: Make a short documentation comment about the instructor dashboard.
 """
 def main():
@@ -459,14 +500,16 @@ def main():
     end_time = time.time()
     logger.info(f"Finished in {round(end_time - start_time, 2)} seconds")
 
-"""
- Below functon is no longer in use.
-"""
+
 @deprecated
 def populate_instructor_dashboard_old(all_lab_ids, assignment_id_to_currency_status, assignment_id_to_names,
                                       assignment_names_to_ids, dashboard_dict, dashboard_sheet_id, discussions,
                                       extract_number_from_lab_title, id, lecture_quizzes, paired_lab_ids,
                                       sheet_api_instance, sorted_labs, sorted_projects):
+    """
+    OPTIONAL: Write a docstring about this
+    This function is deprecated.
+    """
     for i in range(len(sorted_labs) - 1):
         first_element = sorted_labs[i]
         second_element = sorted_labs[i + 1]
