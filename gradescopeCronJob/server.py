@@ -1,4 +1,4 @@
-# Just a simple healthceck server :P
+# Just a simple healthcheck server :P
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 

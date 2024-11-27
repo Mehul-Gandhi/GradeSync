@@ -6,6 +6,8 @@
 - Store Gradescope credentials in environment variables `GRADESCOPE_EMAIL` and `GRADESCOPE_PASSWORD`. Define these in a `.env` file.
 - If you do not have a password setup on Gradescope, you will need to create a password.
 - There should be three variables total in the `.env` file. Follow step 2 to add the `SERVICE_ACCOUNT_CREDENTIALS` variable.
+
+
 ### 2. Google Authentication Setup
 
 1. **Create a New Project in Google Cloud Console**
@@ -76,25 +78,29 @@
 
 ## Build and Run the Docker Container
 
+
+
 ### Step 1: Build the Docker Image
 
 In this directory, run the following command to build the Docker image:
 
 ```bash
-docker build -t gradescope-cron-job .
+docker build -t gradescope-cron-job --build-arg PORT=8080 .
 ```
 
-This command will create a Docker image with the cron job configuration and necessary dependencies.
+This command will create a Docker image with the cron job configuration and necessary dependencies. This includes the `--build-arg PORT=8080` flag to specify the `$PORT` variable from the build arg flag.
+
 
 ### Step 2: Run the Docker Container
 
 Once the image is built, start the container in detached mode:
 
 ```bash
-docker run -d --name gradescope-cron-container gradescope-cron-job
+docker run -d --name gradescope-cron-container --expose 8080 -e PORT=8080 gradescope-cron-job
 ```
 
-This command will run the container in the background.
+This command will run the container in the background. This exposes the port 8080 and sets the environment variable `PORT=8080`, which is the port that the google cloud service runs on by default.
+
 
 ### Step 3: Monitor the Logs
 
@@ -104,7 +110,7 @@ To view the cron job output, check the container logs. Use the following command
 docker logs -f gradescope-cron-container
 ```
 
-Replace `gradescope-cron-job` with the actual container ID if needed. This command will display live logs, allowing you to monitor the cron job’s execution.
+Replace `gradescope-cron-job` with the actual container ID if needed. This command will display live logs, allowing you to monitor the cron job's execution.
 
 ### Example Log Command with Container ID
 
@@ -138,4 +144,4 @@ docker rm gradescope-cron-container
 
 ## Troubleshooting
 
-- **Container isn’t starting**: Check Docker build output for errors during the image creation step.
+- **Container isn't starting**: Check Docker build output for errors during the image creation step.
