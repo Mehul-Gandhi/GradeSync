@@ -1,1 +1,1 @@
-* * * * * timeout 300 /gradescopeCronJob/gradescope_to_spreadsheet.py
+0 */1 * * * timeout 300 /gradescopeCronJob/gradescope_to_spreadsheet.py
