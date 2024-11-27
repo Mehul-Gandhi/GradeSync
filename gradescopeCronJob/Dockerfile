@@ -32,9 +32,6 @@ COPY cronjob /etc/cron.d/cronjob
 # +x: Adds execute permission for the specified group (u here).
 RUN chmod u+w /etc/cron.d/cronjob
 
-# Start the cron daemon
-RUN cron start
-
 # Apply the cron job
 RUN crontab /etc/cron.d/cronjob
 
@@ -45,6 +42,7 @@ RUN touch /var/log/cron.log
 # The healthcheck is required by the Cloud Run Service
 EXPOSE 8080
 
+# Start the cron daemon &&
 # Run the healthcheck server when the container launches
-CMD python server.py
+CMD service cron start && python server.py
 
