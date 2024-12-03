@@ -1,8 +1,13 @@
 # README
 
-- To use this script, your account credentials must be a teaching assistant or instructor on a CS10 Gradescope course instance.
+### Requirements  
+
+- **Gradescope Access**: Teaching Assistant or Instructor role on a CS10 Gradescope course instance.  
+- **Google Cloud Project**: Configured for Google Sheets API access. 
+
 
 ### 1. Environment Setup
+
 - Store Gradescope credentials in environment variables `GRADESCOPE_EMAIL` and `GRADESCOPE_PASSWORD`. Define these in a `.env` file.
 - If you do not have a password setup on Gradescope, you will need to create a password.
 - There should be three variables total in the `.env` file. Follow step 2 to add the `SERVICE_ACCOUNT_CREDENTIALS` variable.
@@ -121,6 +126,7 @@ docker logs -f e9b989ea03676f2141b1014891f436c7b3061320a479d8fa3231a4426c84d4c1
 ```
 - e9b989ea03676f2141b1014891f436c7b3061320a479d8fa3231a4426c84d4c1 is an example to replace with the containerID.
 
+
 ## Configuration
 
 - The cron job schedule and script configurations are set up within the Dockerfile and accompanying cron job files.
@@ -142,6 +148,50 @@ If you wish to remove the container after stopping it:
 docker rm gradescope-cron-container
 ```
 
+
 ## Troubleshooting
 
 - **Container isn't starting**: Check Docker build output for errors during the image creation step.
+
+
+## Deployment
+
+### **Step 1: Build the Docker Container**
+Build the Docker container from the `Dockerfile`:
+```bash
+docker build -t gradescope-cron-job .
+```
+
+### **Step 2: Check if the Docker Image Exists**
+Verify that the image was built successfully:
+```bash
+docker image ls
+```
+
+### **Step 3: Run the Docker Container on Port 8080**
+Run the container and map it to port 8080 (matching the cloud deployment setup):
+```bash
+docker run -p 8080:8080 -e PORT=8080 gradescope-cron-job
+```
+- `-p 8080:8080`: Maps the host's port 8080 to the container's port 8080
+- `-e PORT=8080`: Ensures the container is aware of the port configuration
+
+### **Step 4: Tag the Docker Container**
+Tag the Docker container with the destination in Google Cloud Artifact Registry:
+```bash
+docker tag gradescope-cron-job us-west2-docker.pkg.dev/eecs-gradeview/gradescopecronjob/gradescope-cron-job
+```
+
+### **Step 5: Initialize Google Cloud and Authorize**
+Set up Google Cloud CLI and authenticate:
+```bash
+gcloud init
+gcloud auth login
+gcloud auth configure-docker us-west2-docker.pkg.dev
+```
+
+### **Step 6: Push the Tagged Docker Container**
+Push the Docker image to Google Cloud Artifact Registry:
+```bash
+docker push us-west2-docker.pkg.dev/eecs-gradeview/gradescopecronjob/gradescope-cron-job
+```
