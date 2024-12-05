@@ -5,4 +5,6 @@ google-api-python-client
 google-auth
 google-auth-oauthlib
 backoff
-
+pandas
+backoff_utils
+requests
