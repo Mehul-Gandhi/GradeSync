@@ -155,6 +155,8 @@ docker rm gradescope-cron-container
 
 
 ## Deployment
+- In the Google Cloud Artifact Registry, create a artifact registry repository
+
 
 ### **Step 1: Build the Docker Container**
 Build the Docker container from the `Dockerfile`:
@@ -194,4 +196,46 @@ gcloud auth configure-docker us-west2-docker.pkg.dev
 Push the Docker image to Google Cloud Artifact Registry:
 ```bash
 docker push us-west2-docker.pkg.dev/eecs-gradeview/gradescopecronjob/gradescope-cron-job
+```
+
+
+## Configuring secrets
+
+1. Create the secrets and add permissions
+
+```bash 
+# Create secrets
+gcloud secrets create GRADESCOPE_EMAIL --data-file=email.txt
+gcloud secrets create GRADESCOPE_PASSWORD --data-file=password.txt
+gcloud secrets create SERVICE_ACCOUNT --data-file=service-account.json
+
+# Add permissions for your Cloud Run service account
+gcloud secrets add-iam-policy-binding GRADESCOPE_EMAIL \
+    --member="serviceAccount:<cloud-run-service-account>" \
+    --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding GRADESCOPE_PASSWORD \
+    --member="serviceAccount:<cloud-run-service-account>" \
+    --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding SERVICE_ACCOUNT \
+    --member="serviceAccount:<cloud-run-service-account>" \
+    --role="roles/secretmanager.secretAccessor"
+```
+
+2. Verify the Secret
+```bash
+# List all secrets
+gcloud secrets list
+
+# Inspect the secret metadata
+gcloud secrets describe SERVICE_ACCOUNT_CREDENTIALS
+
+# Test access to the secret (displays the JSON content)
+gcloud secrets versions access latest --secret="SERVICE_ACCOUNT_CREDENTIALS"
+```
+
+3. Fetch and use the secret in the application
+```bash
+gcloud secrets versions access latest --secret="SERVICE_ACCOUNT_CREDENTIALS" > /secrets/service-account.json
 ```

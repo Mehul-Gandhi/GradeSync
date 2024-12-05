@@ -14,17 +14,35 @@ from googleapiclient.errors import HttpError
 import gspread
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
+from google.cloud import secretmanager
+from google.api_core.exceptions import NotFound
 from dotenv import load_dotenv
 import backoff
+import logging
+import sys
 # Uncomment below import if you would like to use the spreadsheet dash functionality in populate_instructor_dashboard
 #import pandas as pd
 
+# Instead of using load_dotenv() from the environment variables, we can instead access the secrets from the Secret Manager
+def access_secret(secret_name):
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/eecs-gradeview/secrets/{secret_name}/versions/latest"
+    try:
+        response = client.access_secret_version(request={"name": name})
+        return response.payload.data.decode("UTF-8")
+    except NotFound:
+        logger.error(f"Secret {secret_name} not found.")
+        return None
 
-load_dotenv()
-GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
-GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
-import logging
-import sys
+# Fetch the secrets
+GRADESCOPE_EMAIL = access_secret("GRADESCOPE_EMAIL")
+GRADESCOPE_PASSWORD = access_secret("GRADESCOPE_PASSWORD") 
+SERVICE_ACCOUNT_CREDENTIALS = access_secret("SERVICE_ACCOUNT_CREDENTIALS")
+
+# load_dotenv()
+# GRADESCOPE_EMAIL = os.getenv("GRADESCOPE_EMAIL")
+# GRADESCOPE_PASSWORD = os.getenv("GRADESCOPE_PASSWORD")
+
 
 # Configure logging to output to both file and console
 logging.basicConfig(
@@ -87,8 +105,10 @@ def deprecated(func):
         return func(*args, **kwargs)
     return wrapper
 
-credentials_json = os.getenv("SERVICE_ACCOUNT_CREDENTIALS")
-credentials_dict = json.loads(credentials_json)
+# credentials_json = os.getenv("SERVICE_ACCOUNT_CREDENTIALS")
+
+# Updated this line to include the service account credentials from the Secret Manager
+credentials_dict = json.loads(SERVICE_ACCOUNT_CREDENTIALS)
 credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
 client = gspread.authorize(credentials)
 
