@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 __pycache__/
 # environment variables
 api/.env
@@ -5,3 +6,6 @@ api/.pytest_cache
 api/.coverage
 .coverage
 .vscode/
+=======
+**/*.env
+>>>>>>> main
