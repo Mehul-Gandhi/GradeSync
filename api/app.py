@@ -9,7 +9,6 @@ from backoff_utils import backoff
 import requests
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-# TEST
 credentials_json = os.getenv("SERVICE_ACCOUNT_CREDENTIALS")
 credentials_dict = json.loads(credentials_json)
 credentials = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
