@@ -21,7 +21,7 @@ jobs:
           PL_API_TOKEN: ${{ secrets.PL_API_TOKEN }}
           GRADESCOPE_EMAIL: ${{ secrets.GRADESCOPE_EMAIL }}
           GRADESCOPE_PASSWORD: ${{ secrets.GRADESCOPE_PASSWORD }}
-        run: echo "Environment variables set for testing."
+        run: echo "$SERVICE_ACCOUNT_CREDENTIALS"
 
       - name: Install dependencies
         run: |
