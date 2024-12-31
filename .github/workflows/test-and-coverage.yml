@@ -15,6 +15,14 @@ jobs:
         with:
           python-version: '3.12' # Adjust to your preferred Python version
 
+      - name: Set environment variables
+        env:
+          SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}
+          PL_API_TOKEN: ${{ secrets.PL_API_TOKEN }}
+          GRADESCOPE_EMAIL: ${{ secrets.GRADESCOPE_EMAIL }}
+          GRADESCOPE_PASSWORD: ${{ secrets.GRADESCOPE_PASSWORD }}
+        run: echo "Environment variables set for testing."
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
