@@ -21,7 +21,7 @@ jobs:
           PL_API_TOKEN: ${{ secrets.PL_API_TOKEN }}
           GRADESCOPE_EMAIL: ${{ secrets.GRADESCOPE_EMAIL }}
           GRADESCOPE_PASSWORD: ${{ secrets.GRADESCOPE_PASSWORD }}
-        run: echo "$SERVICE_ACCOUNT_CREDENTIALS"
+        run: Environment variables loaded.
 
       - name: Install dependencies
         run: |
@@ -30,6 +30,11 @@ jobs:
           pip install pytest pytest-cov codecov
 
       - name: Run tests with coverage
+        env:
+          SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}
+          PL_API_TOKEN: ${{ secrets.PL_API_TOKEN }}
+          GRADESCOPE_EMAIL: ${{ secrets.GRADESCOPE_EMAIL }}
+          GRADESCOPE_PASSWORD: ${{ secrets.GRADESCOPE_PASSWORD }}
         run: |
           pytest --cov=api --cov-report=xml --cov-branch
 
