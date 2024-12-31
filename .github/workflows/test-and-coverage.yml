@@ -39,7 +39,7 @@ jobs:
           pytest --cov=api --cov-report=xml --cov-branch
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.0.6
+        uses: codecov/codecov-action@v5.1.2
         with:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
