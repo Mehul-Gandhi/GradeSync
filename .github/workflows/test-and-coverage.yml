@@ -8,7 +8,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -39,7 +39,7 @@ jobs:
           pytest --cov=api --cov-report=xml --cov-branch
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v5.0.6
         with:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
