@@ -68,7 +68,7 @@ def fetchGrades(class_id: str, assignment_id: str, file_type: str = "json"):
         return json_content
     else:
         return JSONResponse(
-            content={"message": f"Failed to fetch grades. "},
+            content={"message": f"Failed to fetch grades."},
             status_code=int(result.status_code)
         )
 
@@ -112,7 +112,7 @@ def get_assignment_info(class_id: str = None):
     # if class_id is None, use CS10's CS_10_COURSE_ID
     class_id = class_id or CS_10_GS_COURSE_ID
 
-    if class_id == 902165: #CS10_FALL_2024_DUMMY class
+    if str(class_id) == "902165": #CS10_FALL_2024_DUMMY class
         # Load assignment data from local JSON file
         # This JSON is for the CS10_FALL_2024 dummy Gradescope test class
         local_json_path = os.path.join(os.path.dirname(__file__), "cs10_assignments.json")

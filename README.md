@@ -21,7 +21,7 @@ GradeSync is a backend microservice that integrates with assessment platforms to
 6. Test endpoints with a tool like ThunderClient or Postman.
 - Go to VSCode extensions, and add "ThunderClient" to your extensions.
 - Click "New Request" to test the API endpoints.
-- Also, create test cases in `api/tests/test_app.py`.
+- Also, create unit test cases in `api/tests/test_gradescope_unit.py` and integration tests in `api/tests/test_integration_tests.py`.
 7. When you are finished, press CTRL+C to stop the server and run `docker-compose down` to stop the container.
 
 ### How to Test the Application
