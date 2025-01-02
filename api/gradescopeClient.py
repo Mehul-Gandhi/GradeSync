@@ -1,6 +1,7 @@
 # https://pypi.org/project/fullGSapi/
 from fullGSapi.api.client import GradescopeClient as GradescopeBaseClient
 import threading
+import requests
 
 class GradescopeClient(GradescopeBaseClient):
     def __init__(self):
@@ -39,6 +40,7 @@ class GradescopeClient(GradescopeBaseClient):
                     print("Logged in to Gradescope")
                     return True
                 return False
+        return self.logged_in
 
 
     def logout(self):

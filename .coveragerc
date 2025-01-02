@@ -1,6 +1,9 @@
 [run]
 branch = True
 # Enables branch coverage for testing all execution paths in conditionals
+omit =
+    api/tests/*
+# Exclude all files in the api/tests folder from coverage
 
 [report]
 show_missing = True
